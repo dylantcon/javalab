@@ -26,11 +26,28 @@ const tell = (msg, transfer) => parent.postMessage({ source: "javalab-build", ..
   }
 })();
 
+const GJF_CP = "/app/builder/gjf.jar:/app/builder/tools.jar";
+
 window.addEventListener("message", (e) => {
   const m = e.data;
   if (!m || m.source !== "javalab-ide") return;
   if (m.type === "build") doBuild(m);
+  else if (m.type === "format") doFormat(m);
 });
+
+async function doFormat(m) {
+  try {
+    const path = "/str/" + m.name;
+    try { if (typeof cheerpOSRemoveStringFile === "function") cheerpOSRemoveStringFile(path); } catch (e) {}
+    cheerpOSAddStringFile(path, m.content);
+    consoleEl.textContent = "";
+    // google-java-format's Main prints the formatted source to stdout → #console
+    const rc = await cheerpjRunMain("com.google.googlejavaformat.java.Main", GJF_CP, path);
+    tell({ event: "format-result", id: m.id, ok: rc === 0, formatted: rc === 0 ? consoleEl.innerText : null });
+  } catch (err) {
+    tell({ event: "format-result", id: m.id, ok: false, formatted: null });
+  }
+}
 
 async function doBuild(m) {
   try {

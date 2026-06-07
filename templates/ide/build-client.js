@@ -20,7 +20,7 @@ export function initBuildRealm() {
       if (!m || m.source !== "javalab-build") return;
       if (m.event === "ready") { resolve(); }
       else if (m.event === "error") { reject(new Error(m.message)); }
-      else if (m.event === "build-result") {
+      else if (m.event === "build-result" || m.event === "format-result") {
         const fn = pending.get(m.id);
         if (fn) { pending.delete(m.id); fn(m); }
       }
@@ -38,5 +38,16 @@ export async function compile(files, manifest) {
     pending.set(id, resolve);
     iframe.contentWindow.postMessage(
       { source: "javalab-ide", type: "build", id, files, manifest }, "*");
+  });
+}
+
+/** Format one .java file with google-java-format. Resolves {ok, formatted}. */
+export async function format(name, content) {
+  await initBuildRealm();
+  const id = ++seq;
+  return new Promise((resolve) => {
+    pending.set(id, resolve);
+    iframe.contentWindow.postMessage(
+      { source: "javalab-ide", type: "format", id, name, content }, "*");
   });
 }

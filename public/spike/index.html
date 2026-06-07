@@ -55,7 +55,7 @@
 <script>
   const params  = new URLSearchParams(location.search);
   const version = parseInt(params.get("version") || "17", 10);
-  const mode    = ["ecj", "probe", "javac", "builder", "diag", "hasjavac", "loop", "guidemo", "audio", "console", "extract"].includes(params.get("mode")) ? params.get("mode") : "system";
+  const mode    = ["ecj", "probe", "javac", "builder", "diag", "hasjavac", "loop", "guidemo", "audio", "console", "extract", "format"].includes(params.get("mode")) ? params.get("mode") : "system";
   const boot    = params.get("boot") || "";   // optional -bootclasspath jar for ecj mode
   const logEl     = document.getElementById("log");
   const verdictEl = document.getElementById("verdict");
@@ -144,7 +144,23 @@ const CODE = { 0: ["PASS", ""],
     }
 
     let code;
-    if (mode === "extract") {
+    if (mode === "format") {
+      // De-risk google-java-format 1.7 (last Java-8-compatible) under CheerpJ:
+      // run its Main on a messy source, read the formatted result from #console.
+      const messy = "public class Input{public static void main(String[]a){int x=1;System.out.println(  x );}}\n";
+      cheerpOSAddStringFile("/str/Input.java", messy);
+      const cp = "/app/spike/gjf.jar:/app/spike/tools.jar";
+      const consoleEl = document.getElementById("console");
+      consoleEl.textContent = "";
+      const t = Date.now();
+      const rc = await cheerpjRunMain("com.google.googlejavaformat.java.Main", cp, "/str/Input.java");
+      const ms = Date.now() - t;
+      const out = consoleEl.innerText;
+      console.log("SPIKE-FORMAT rc=" + rc + " ms=" + ms);
+      console.log("SPIKE-FORMAT-OUT " + JSON.stringify(out.slice(0, 400)));
+      const ok = rc === 0 && out.includes("public class Input") && out.split("\n").length >= 4;
+      code = ok ? 0 : 14;
+    } else if (mode === "extract") {
       // De-risk Phase 2: build a jar, lift its bytes OUT of the build realm via
       // cjFileBlob, then prove they are a valid runnable jar by re-injecting and
       // running them (fresh-realm run is already proven in Phase 1).

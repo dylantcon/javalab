@@ -182,6 +182,13 @@ try {
   await page.fill("#mf-main", "Demo");
   check("manifest form writes Main-Class to MANIFEST.MF", /Main-Class:\s*Demo/.test(await page.evaluate(() => window.__ideDebug.files()["MANIFEST.MF"] || "")));
 
+  // format action → google-java-format reflows the code (on the selected file)
+  await page.locator("#ide-tabs .ide-tab", { hasText: "HelloWorld.java" }).first().click();
+  await page.evaluate(() => window.__ideDebug.setEditor('public class HelloWorld{public static void main(String[]a){System.out.println("x");}}'));
+  await page.evaluate(() => { window.__ideDebug.format(); });   // fire (don't await the ~cold gjf run)
+  const formatted = await page.waitForFunction(() => /\n {2}\S/.test(window.__ideDebug.files()["HelloWorld.java"] || ""), undefined, { timeout: 60_000 }).then(() => true).catch(() => false);
+  check("format action reflows code (google-java-format)", formatted);
+
   // source export → .zip (never .jar)
   await page.click("#tb-export");
   await page.waitForTimeout(600);

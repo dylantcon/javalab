@@ -49,6 +49,14 @@ export function setFormatHook(fn) { formatHook = fn; }
 
 export function focusEditor() { view?.focus(); }
 
+/** Replace the editor's document (also used by the e2e harness). */
+export function setContent(text) {
+  if (view) view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+}
+
+/** Trigger the format action programmatically (same path as Alt+Shift+F). */
+export function formatCurrent() { return runFormat(); }
+
 /** Update inline diagnostics from a build. `parsed` = [{file,line,severity,message}]. */
 export function showDiagnostics(parsed) {
   diagnostics = parsed || [];

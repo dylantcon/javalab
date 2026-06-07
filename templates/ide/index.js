@@ -1,11 +1,11 @@
 // index.js — IDE entry. esbuild bundles this (+ CM6/xterm/fflate) into
 // public/ide.bundle.js as window.JavaLabIDE = { init }. main.js calls
 // JavaLabIDE.init(container, ctx) the first time the "Write Java" tab opens.
-import { mountEditor, setVim, isVim, focusEditor } from "./editor.js";
+import { mountEditor, setVim, isVim, focusEditor, setFormatHook, setContent, formatCurrent } from "./editor.js";
 import { mountFiles, scaffoldIfEmpty, newSimulation } from "./files.js";
 import { mountManifestForm } from "./manifest-form.js";
-import { mountConsole } from "./console.js";
-import { initBuildRealm } from "./build-client.js";
+import { mountConsole, writeLine } from "./console.js";
+import { initBuildRealm, format as formatInRealm } from "./build-client.js";
 import { setContext, saveSimulation, simulate } from "./ide.js";
 import { exportZip } from "./export.js";
 import * as state from "./state.js";
@@ -34,12 +34,22 @@ export function init(container, ctx) {
   const vimBtn = $("#tb-vim");
   vimBtn.onclick = () => { setVim(!isVim()); vimBtn.classList.toggle("is-on", isVim()); };
 
+  // Alt+Shift+F → google-java-format in the build realm (basic-indent fallback).
+  setFormatHook(async (name, src) => {
+    if (!name.endsWith(".java")) throw new Error("not-java");
+    writeLine("Formatting " + name + "…");
+    const r = await formatInRealm(name, src);
+    if (r.ok && r.formatted) { writeLine("\x1b[32m✓ formatted\x1b[0m"); return r.formatted; }
+    writeLine("\x1b[33mformat unavailable — basic indent\x1b[0m");
+    throw new Error("format-failed");
+  });
+
   scaffoldIfEmpty();
   initBuildRealm();      // warm up the compiler realm in the background
   focusEditor();
 
   // Test hooks (harmless in prod): let the e2e harness inspect/seed state.
-  window.__ideDebug = { files: () => state.snapshot(), isVim, setFile: (n, c) => state.setFile(n, c) };
+  window.__ideDebug = { files: () => state.snapshot(), isVim, setFile: (n, c) => state.setFile(n, c), setEditor: setContent, format: formatCurrent };
 }
 
 function mountTabStrip(parent) {

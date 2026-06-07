@@ -32,7 +32,20 @@ async function ensureToolsJar() {
   return dest;
 }
 
+// google-java-format 1.7 (last Java-8-compatible release) for the format action.
+async function ensureGjfJar() {
+  const dest = join(BUILDER_DIR, "gjf.jar");
+  if (await exists(dest)) return dest;
+  const spikeCopy = join(PUBLIC, "spike", "gjf.jar");
+  if (await exists(spikeCopy)) { await cp(spikeCopy, dest); console.log("[toolchain] gjf.jar ← public/spike/gjf.jar"); return dest; }
+  console.log("[toolchain] downloading google-java-format 1.7 …");
+  execSync(`curl -sS -L -m 180 -o "${dest}" "https://repo1.maven.org/maven2/com/google/googlejavaformat/google-java-format/1.7/google-java-format-1.7-all-deps.jar"`);
+  console.log("[toolchain] gjf.jar ← Maven Central");
+  return dest;
+}
+
 const toolsJar = await ensureToolsJar();
+await ensureGjfJar();
 
 // builder.jar — Builder.java references com.sun.tools.javac.Main, so compile against tools.jar.
 const classesDir = join(BUILDER_DIR, "_classes");
