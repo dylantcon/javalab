@@ -7,7 +7,12 @@ public/spike/ecj-3.26.0.jar
 public/spike/tools.jar
 spike/gui-screenshot.png
 spike/console-screenshot.png
-spike/e2e-*.png
-spike/shot-*.png
+# Generated site output (scripts/build.mjs + generate.mjs write here);
+# keep the hand-written spike debug harness under public/spike/.
+/public/*
+!/public/spike/
+
 # Dev logs — kept locally, never pushed to remote
 devlog/
+spike/e2e-*.png
+spike/shot-*.png

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Running… — JavaLab</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #06141d; color: #d6f5ef;
+               font-family: Menlo, Consolas, monospace;
+               display: flex; align-items: center; justify-content: center; }
+  #status { color: #37c7b6; font-size: .85rem; padding: 1rem; text-align: center; }
+</style>
+</head>
+<body>
+<div id="app"><div id="status">Loading Java runtime…</div></div>
+
+<!-- A visitor's uploaded jar runs in its own realm here. Bytes are read from
+     IndexedDB (this origin, client-only) and written into CheerpJ's in-memory
+     /str mount — they never touch the network. Default runtime Java 17 runs
+     8/11/17 bytecode, so it accepts the widest range of uploaded jars. -->
+<script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
+<script type="module">
+import { getBytes } from "/idb.js";
+
+const params = new URLSearchParams(location.search);
+const key = params.get("key");
+const version = parseInt(params.get("version") || "17", 10);
+const w = parseInt(params.get("w") || "700", 10);
+const h = parseInt(params.get("h") || "520", 10);
+const app = document.getElementById("app");
+const sanitize = (n) => n.replace(/[^A-Za-z0-9._-]/g, "_");
+
+(async () => {
+  try {
+    if (!key) throw new Error("no jar key");
+    const bytes = await getBytes(key);
+    if (!bytes) throw new Error("not in storage: " + key);
+    await cheerpjInit({ version, status: "none" });
+    const vfsPath = "/str/" + sanitize(key);
+    cheerpOSAddStringFile(vfsPath, new Uint8Array(bytes));
+    app.innerHTML = "";
+    cheerpjCreateDisplay(w, h, app);
+    await cheerpjRunJar(vfsPath);
+  } catch (e) {
+    app.innerHTML = '<div id="status">Failed to run: ' + e + "</div>";
+  }
+})();
+</script>
+</body>
+</html>

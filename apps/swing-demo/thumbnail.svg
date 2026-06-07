@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Bounce">
+  <rect width="120" height="120" rx="10" fill="#1a1a40"/>
+  <circle cx="34" cy="42" r="16" fill="#37c7b6"/>
+  <circle cx="80" cy="34" r="11" fill="#ffffff"/>
+  <circle cx="86" cy="78" r="18" fill="#6c5ce7"/>
+  <circle cx="44" cy="86" r="13" fill="#5dff9c"/>
+  <circle cx="62" cy="58" r="8" fill="#37c7b6"/>
+</svg>

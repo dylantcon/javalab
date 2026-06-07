@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{NAME}} — JavaLab</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #06141d; color: #d6f5ef;
+               font-family: Menlo, Consolas, monospace;
+               display: flex; align-items: center; justify-content: center; }
+  #app { width: {{W}}px; height: {{H}}px; }
+  #status { color: #37c7b6; font-size: .85rem; padding: 1rem; text-align: center; }
+</style>
+</head>
+<body>
+<div id="app"><div id="status">Loading Java runtime…</div></div>
+
+<!-- Each app runs in its OWN realm: this standalone page is loaded in an iframe;
+     closing the iframe tears down the runtime (threads, audio, statics). -->
+<script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
+<script>
+(async () => {
+  const app = document.getElementById("app");
+  const tell = (msg) => { try { parent.postMessage({ source: "javalab-app", id: "{{ID}}", ...msg }, "*"); } catch (e) {} };
+  try {
+    await cheerpjInit({ version: {{VERSION}}, status: "none" });
+    app.innerHTML = "";
+    cheerpjCreateDisplay({{W}}, {{H}}, app);
+    tell({ event: "ready" });
+    await cheerpjRunJar("/app/apps/{{ID}}/{{JAR}}");
+    tell({ event: "exit" });
+  } catch (e) {
+    app.innerHTML = '<div id="status">Failed to start: ' + e + "</div>";
+    tell({ event: "error", message: String(e) });
+  }
+})();
+</script>
+</body>
+</html>

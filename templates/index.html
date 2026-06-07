@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaLab — Java in your browser</title>
+<link rel="stylesheet" href="/styles.css">
+<!--APPS_DATA-->
+</head>
+<body>
+<header id="topbar">
+  <h1>Java<span>Lab</span></h1>
+  <p class="tagline">A Java emulator that runs entirely in your browser. Anything you upload or write stays on your machine.</p>
+</header>
+
+<main id="layout">
+  <!-- LEFT: curated gallery -->
+  <section id="gallery" aria-label="Curated apps">
+    <div id="gallery-grid" role="list"><!-- cards injected by gallery.js --></div>
+
+    <div id="stage" hidden>
+      <div id="stage-bar">
+        <button id="stage-back" type="button">&larr; Gallery</button>
+        <span id="stage-title"></span>
+      </div>
+      <div id="stage-host"><!-- per-app realm iframe goes here --></div>
+    </div>
+  </section>
+
+  <!-- RIGHT: visitor sandbox -->
+  <aside id="panel" aria-label="Your sandbox">
+    <div id="tabbar" role="tablist">
+      <button class="tab is-active" data-tab="upload" role="tab" aria-selected="true">Upload &amp; run</button>
+      <button class="tab" data-tab="ide" role="tab" aria-selected="false">Write Java</button>
+    </div>
+
+    <div class="tab-panel is-active" data-panel="upload">
+      <div id="upload-controls">
+        <label class="filepick" id="filepick">
+          <input type="file" id="file-input" accept=".jar,application/java-archive" hidden>
+          <span class="filepick-label">Choose a <code>.jar</code> &mdash; or drop it here</span>
+        </label>
+        <div id="storage-usage" aria-live="polite"></div>
+        <p class="boundary-note">Your jars are read in the browser and kept in this browser's storage only &mdash; never uploaded.</p>
+      </div>
+      <div id="upload-list" role="list"><!-- stored-jar cards injected by upload.js --></div>
+    </div>
+
+    <div class="tab-panel" data-panel="ide">
+      <div class="coming-soon">
+        <strong>Write Java &mdash; coming soon.</strong>
+        <p>An in-browser editor that compiles and runs your own Java, no server, no install.</p>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<script type="module" src="/main.js"></script>
+</body>
+</html>

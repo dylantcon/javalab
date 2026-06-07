@@ -5,6 +5,11 @@
   "description": "Client-side Java sandbox (CheerpJ) — static site",
   "type": "module",
   "scripts": {
+    "build": "node scripts/build.mjs",
+    "generate": "node scripts/generate.mjs",
+    "site": "node scripts/build.mjs && node scripts/generate.mjs",
+    "serve": "node scripts/serve.mjs",
+    "e2e": "node scripts/e2e.mjs",
     "spike": "node scripts/run-spike.mjs"
   },
   "devDependencies": {

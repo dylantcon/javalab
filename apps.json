@@ -1,0 +1,36 @@
+{
+  "_schema": {
+    "note": "Curated app manifest. scripts/build.mjs compiles each app to public/apps/<id>/<artifact>; scripts/generate.mjs emits one loader page per entry. Adding an app = source (or submodule) + an entry here + rebuild.",
+    "fields": {
+      "id": "url-safe slug; also the public/apps/<id>/ directory",
+      "name": "display label on the gallery card",
+      "description": "one-line blurb",
+      "source": "'local' (compile sourceDir with our javac) | 'submodule' (run build cmd) | 'prebuilt' (copy an existing jar)",
+      "sourceDir": "for source=local: dir of .java files to compile (relative to repo root)",
+      "build": "for source=submodule: build command",
+      "mainClass": "Main-Class written into the jar manifest (source=local)",
+      "artifact": "output jar filename under public/apps/<id>/",
+      "javaTarget": "javac --release level; build fails if > 17 (CheerpJ ceiling)",
+      "cheerpjVersion": "8 | 11 | 17 — the runtime the loader inits for this app",
+      "display": "{ w, h } CheerpJ display size in px",
+      "thumbnail": "image filename (relative to the app dir) copied to public/apps/<id>/",
+      "webNotes": "porting caveats (see each app's WEB_NOTES.md; do not revert)"
+    }
+  },
+  "apps": [
+    {
+      "id": "swing-demo",
+      "name": "Bounce",
+      "description": "An interactive Swing animation — add bouncing shapes and watch them go.",
+      "source": "local",
+      "sourceDir": "apps/swing-demo/src",
+      "mainClass": "BounceDemo",
+      "artifact": "swing-demo.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 360, "h": 320 },
+      "thumbnail": "thumbnail.svg",
+      "webNotes": "Demo app shipped with JavaLab to exercise the gallery; replace with curated submodules."
+    }
+  ]
+}
