@@ -9,6 +9,7 @@ import { putJar } from "./idb.js";
 
 renderGallery();
 initUpload();
+initSplitter();
 
 let ideReady = false;
 initTabs((name) => {
@@ -22,3 +23,20 @@ initTabs((name) => {
     });
   }
 });
+
+// Draggable splitter between the gallery and the sandbox column, so the editor
+// can be widened (an IDE without a resizable split is no IDE).
+function initSplitter() {
+  const layout = document.getElementById("layout");
+  const handle = document.getElementById("hsplit");
+  if (!layout || !handle) return;
+  let dragging = false;
+  handle.addEventListener("mousedown", (e) => { dragging = true; e.preventDefault(); document.body.style.cursor = "ew-resize"; });
+  window.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    const r = layout.getBoundingClientRect();
+    const w = Math.max(360, Math.min(r.width - 220, r.right - e.clientX));
+    layout.style.setProperty("--sandbox-w", w + "px");
+  });
+  window.addEventListener("mouseup", () => { if (dragging) { dragging = false; document.body.style.cursor = ""; } });
+}

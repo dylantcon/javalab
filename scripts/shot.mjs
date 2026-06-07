@@ -19,6 +19,8 @@ try {
   await page.screenshot({ path: join(ROOT, "spike/shot-launcher.png") });
   await page.click('.tab[data-tab="ide"]');
   await page.waitForTimeout(1500);
+  await page.locator(".ide-menu-top").first().click().catch(() => {});   // open File menu
+  await page.waitForTimeout(150);
   await page.screenshot({ path: join(ROOT, "spike/shot-ide.png") });
   console.log("[shot] saved spike/shot-launcher.png, spike/shot-ide.png");
 } finally {

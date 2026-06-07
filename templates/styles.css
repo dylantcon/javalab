@@ -46,10 +46,14 @@ body {
 /* --- two-column layout --- */
 #layout {
   flex: 1; min-height: 0;
-  display: grid; grid-template-columns: 1fr 560px; gap: 6px;
+  display: grid; grid-template-columns: minmax(120px, 1fr) 6px var(--sandbox-w, 620px); gap: 0;
   padding: 6px;
 }
-@media (max-width: 900px) { #layout { grid-template-columns: 1fr; } }
+#hsplit { cursor: ew-resize; background: var(--desktop);
+  box-shadow: inset -1px 0 var(--lo), inset 1px 0 var(--hi); }
+#hsplit:hover { background: #0a5a5a; }
+#gallery, #panel { margin: 0 3px; }
+@media (max-width: 900px) { #layout { grid-template-columns: 1fr; } #hsplit { display: none; } }
 
 /* a "window" panel: gray face, raised bevel, square */
 #gallery, #panel {

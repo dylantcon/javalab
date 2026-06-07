@@ -1,18 +1,24 @@
 // console.js — xterm pane for build output, plus javac-diagnostics parsing.
 import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
 
 let term = null;
 
 export function mountConsole(parent) {
   term = new Terminal({
-    convertEol: true, rows: 8, fontSize: 12, cursorBlink: false,
+    convertEol: true, fontSize: 12, cursorBlink: false,
     fontFamily: '"Courier New", Courier, monospace',
     theme: {
       background: "#ffffff", foreground: "#101010", cursor: "#101010",
       red: "#b00000", green: "#006b00", yellow: "#9a5b00",
     },
   });
+  const fit = new FitAddon();
+  term.loadAddon(fit);
   term.open(parent);
+  const refit = () => { try { fit.fit(); } catch (e) {} };
+  refit();
+  new ResizeObserver(refit).observe(parent);
   return term;
 }
 
