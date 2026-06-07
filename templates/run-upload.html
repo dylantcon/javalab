@@ -5,18 +5,24 @@
 <title>Running… — JavaLab</title>
 <style>
   html, body { margin: 0; height: 100%; background: #06141d; color: #d6f5ef;
-               font-family: Menlo, Consolas, monospace;
-               display: flex; align-items: center; justify-content: center; }
+               font-family: Menlo, Consolas, monospace; }
+  #wrap { height: 100%; display: flex; flex-direction: column; }
+  #app { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
   #status { color: #37c7b6; font-size: .85rem; padding: 1rem; text-align: center; }
+  #console { flex: 0 0 130px; margin: 0; padding: .5rem .7rem; overflow: auto;
+             border-top: 1px solid #1c3a4a; background: #08161f; font-size: .78rem;
+             white-space: pre-wrap; word-break: break-word; }
 </style>
 </head>
 <body>
-<div id="app"><div id="status">Loading Java runtime…</div></div>
+<div id="wrap">
+  <div id="app"><div id="status">Loading Java runtime…</div></div>
+  <pre id="console" aria-label="Program output"></pre>   <!-- CheerpJ writes stdout/stderr here -->
+</div>
 
-<!-- A visitor's uploaded jar runs in its own realm here. Bytes are read from
-     IndexedDB (this origin, client-only) and written into CheerpJ's in-memory
-     /str mount — they never touch the network. Default runtime Java 17 runs
-     8/11/17 bytecode, so it accepts the widest range of uploaded jars. -->
+<!-- A visitor's jar (uploaded OR built in the IDE) runs in its own realm here.
+     Bytes come from IndexedDB (this origin, client-only) → CheerpJ's in-memory
+     /str mount; they never touch the network. Java 17 runs 8/11/17 bytecode. -->
 <script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
 <script type="module">
 import { getBytes } from "/idb.js";
@@ -38,7 +44,7 @@ const sanitize = (n) => n.replace(/[^A-Za-z0-9._-]/g, "_");
     const vfsPath = "/str/" + sanitize(key);
     cheerpOSAddStringFile(vfsPath, new Uint8Array(bytes));
     app.innerHTML = "";
-    cheerpjCreateDisplay(w, h, app);
+    cheerpjCreateDisplay(w, Math.max(200, h - 140), app);   // leave room for the console pane
     await cheerpjRunJar(vfsPath);
   } catch (e) {
     app.innerHTML = '<div id="status">Failed to run: ' + e + "</div>";

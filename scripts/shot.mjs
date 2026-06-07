@@ -18,7 +18,7 @@ try {
   await page.waitForTimeout(900);
   await page.screenshot({ path: join(ROOT, "spike/shot-launcher.png") });
   await page.click('.tab[data-tab="ide"]');
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(1500);
   await page.screenshot({ path: join(ROOT, "spike/shot-ide.png") });
   console.log("[shot] saved spike/shot-launcher.png, spike/shot-ide.png");
 } finally {

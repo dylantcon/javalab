@@ -55,7 +55,7 @@
 <script>
   const params  = new URLSearchParams(location.search);
   const version = parseInt(params.get("version") || "17", 10);
-  const mode    = ["ecj", "probe", "javac", "builder", "diag", "hasjavac", "loop", "guidemo", "audio", "console"].includes(params.get("mode")) ? params.get("mode") : "system";
+  const mode    = ["ecj", "probe", "javac", "builder", "diag", "hasjavac", "loop", "guidemo", "audio", "console", "extract"].includes(params.get("mode")) ? params.get("mode") : "system";
   const boot    = params.get("boot") || "";   // optional -bootclasspath jar for ecj mode
   const logEl     = document.getElementById("log");
   const verdictEl = document.getElementById("verdict");
@@ -144,7 +144,49 @@ const CODE = { 0: ["PASS", ""],
     }
 
     let code;
-    if (mode === "console") {
+    if (mode === "extract") {
+      // De-risk Phase 2: build a jar, lift its bytes OUT of the build realm via
+      // cjFileBlob, then prove they are a valid runnable jar by re-injecting and
+      // running them (fresh-realm run is already proven in Phase 1).
+      const proj = {
+        "/str/Main.java":
+          "package com.example;\nimport com.example.util.Greeter;\n" +
+          "public class Main { public static void main(String[] a){ System.out.println(new Greeter().greet(\"JavaLab\")); } }\n",
+        "/str/Greeter.java":
+          "package com.example.util;\npublic class Greeter { public String greet(String n){ return \"EXTRACT-RAN hello \" + n; } }\n",
+        "/str/MANIFEST.MF": "Main-Class: com.example.Main\n",
+      };
+      for (const [p, c] of Object.entries(proj)) cheerpOSAddStringFile(p, c);
+      const cp = "/app/spike/builder.jar:/app/spike/tools.jar";
+      const bc = await cheerpjRunMain("Builder", cp, "/files/eclasses", "/files/app.jar",
+        "/str/MANIFEST.MF", "/str/Main.java", "/str/Greeter.java");
+      console.log("SPIKE-EXTRACTBUILD rc=" + bc);
+      if (bc !== 0) {
+        code = 3;
+      } else {
+        let bytes = null, via = "none";
+        if (typeof cjFileBlob === "function") {
+          try {
+            const r = cjFileBlob("/files/app.jar");
+            const blob = r && typeof r.then === "function" ? await r : r;
+            bytes = new Uint8Array(await blob.arrayBuffer());
+            via = "cjFileBlob";
+          } catch (e) { console.log("SPIKE-EXTRACT cjFileBlob-threw: " + e); }
+        } else {
+          console.log("SPIKE-EXTRACT cjFileBlob-not-a-function (typeof=" + (typeof cjFileBlob) + ")");
+        }
+        if (!bytes) {
+          code = 12;   // extraction failed → base64-via-#console fallback needed
+        } else {
+          const pk = bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4B;  // "PK"
+          console.log("SPIKE-EXTRACT via=" + via + " bytes=" + bytes.length + " zipHeader=" + pk);
+          cheerpOSAddStringFile("/str/extracted.jar", bytes);
+          const rc = await cheerpjRunJar("/str/extracted.jar");
+          console.log("SPIKE-EXTRACTRUN exit=" + rc);
+          code = pk && rc === 0 ? 0 : 13;
+        }
+      }
+    } else if (mode === "console") {
       // Prove stdout/stderr capture into a styled pane: CheerpJ writes Java
       // console output into <pre id="console">; we mirror it live into an xterm.js
       // terminal via a MutationObserver, and self-verify the captured text.

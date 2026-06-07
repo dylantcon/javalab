@@ -37,7 +37,7 @@ const MIME = {
 };
 
 const versions = (process.argv[2] || "17,11,8").split(",").map((s) => parseInt(s.trim(), 10)).filter(Boolean);
-const mode = ["ecj", "probe", "javac", "builder", "diag", "hasjavac", "loop", "guidemo", "audio", "console"].includes(process.argv[3]) ? process.argv[3] : "system";
+const mode = ["ecj", "probe", "javac", "builder", "diag", "hasjavac", "loop", "guidemo", "audio", "console", "extract"].includes(process.argv[3]) ? process.argv[3] : "system";
 const COI = process.env.COI === "1";   // when set, serve COOP/COEP (cross-origin isolation)
 const coiHdr = COI ? { "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Embedder-Policy": "require-corp" } : {};
 const CONSOLE_SHOT = fileURLToPath(new URL("../spike/console-screenshot.png", import.meta.url));
@@ -124,7 +124,7 @@ async function runVersion(v) {
     page.on("console", (m) => {
       const s = `${m.type()}: ${m.text()}`.trim();
       lines.push(s);
-      if (/SPIKE|HELLO|PROBE|BUILDER|LOOP|GUI|THREAD|AUDIO|CONSOLE|jrt|Exception|Error|error:|warning:/.test(s)) log(`      | ${s}`); // live progress
+      if (/SPIKE|HELLO|PROBE|BUILDER|LOOP|GUI|THREAD|AUDIO|CONSOLE|EXTRACT|jrt|Exception|Error|error:|warning:/.test(s)) log(`      | ${s}`); // live progress
     });
     page.on("pageerror", (e) => { lines.push(`pageerror: ${e.message}`); log(`      | pageerror: ${e.message}`); });
 

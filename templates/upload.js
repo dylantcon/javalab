@@ -24,7 +24,7 @@ export function initUpload() {
   }));
   filepick.addEventListener("drop", (e) => acceptFiles(e.dataTransfer?.files));
 
-  refresh();
+  refreshUploads();
 }
 
 async function acceptFiles(fileList) {
@@ -34,10 +34,10 @@ async function acceptFiles(fileList) {
     await putJar(f.name, buf);
   }
   fileInput.value = "";
-  await refresh();
+  await refreshUploads();
 }
 
-async function refresh() {
+export async function refreshUploads() {
   const jars = await listJars();
   jars.sort((a, b) => b.added - a.added);
   if (jars.length === 0) {
@@ -63,7 +63,7 @@ function jarCard(meta) {
     openStage(meta.name, `/run-upload.html?key=${encodeURIComponent(meta.name)}`, 700, 520));
   el.querySelector(".evict").addEventListener("click", async () => {
     await removeJar(meta.name);
-    await refresh();
+    await refreshUploads();
   });
   return el;
 }

@@ -155,6 +155,14 @@ is NOT required.** Threads and the audio pipeline both initialise without it. So
   deltas to xterm with `convertEol:true`. GUI programs use the display canvas;
   a program can do both (§6 item 7).
 
+## Verification round 7 — lift the built jar out of the build realm (Phase 2)
+
+`node scripts/run-spike.mjs 8 extract`: built a jar with `Builder`, then read it
+back from `/files/app.jar` via **`cjFileBlob(path)`** (returns a Blob) →
+`Uint8Array` (1144 bytes, valid `PK` zip header), re-injected to `/str` and ran it
+— exit 0. ✅ So the IDE can compile in a warm build realm and hand the jar bytes
+to JS (→ IndexedDB → a fresh run realm). No base64-via-`#console` fallback needed.
+
 ## ✅ Verification complete — no remaining platform unknowns
 
 Every assumption in the Agent Brief that could have blocked the project has been

@@ -6,19 +6,22 @@
 // assets, run-upload.html, and public/apps/<id>/index.html per curated app.
 // Leaves public/spike/ (the debug harness) untouched.
 
-import { readFile, writeFile, mkdir, cp, readdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, cp, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { PUBLIC, APPS_OUT, TEMPLATES, readManifest } from "./manifest.mjs";
 
 const apps = await readManifest();
 await mkdir(PUBLIC, { recursive: true });
 
-// 1. Copy verbatim static assets (everything in templates/ except the two
-//    files that need substitution).
+// 1. Copy verbatim static assets — every top-level FILE in templates/ except the
+//    two that need substitution. The ide/ directory is skipped (esbuild bundles
+//    it to public/ide.bundle.js); ide.bundle.{js,css} are produced by bundle.mjs.
 const TEMPLATED = new Set(["index.html", "app-loader.html"]);
 for (const name of await readdir(TEMPLATES)) {
   if (TEMPLATED.has(name)) continue;
-  await cp(join(TEMPLATES, name), join(PUBLIC, name));
+  const src = join(TEMPLATES, name);
+  if ((await stat(src)).isDirectory()) continue;
+  await cp(src, join(PUBLIC, name));
 }
 
 // 2. Launcher: inject the client-facing app data.

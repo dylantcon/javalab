@@ -37,7 +37,7 @@ body {
 /* ---- two-column layout ---- */
 #layout {
   flex: 1; min-height: 0;
-  display: grid; grid-template-columns: 1fr 420px; gap: 1.25rem;
+  display: grid; grid-template-columns: 1fr 540px; gap: 1.25rem;
   padding: 1rem 1.5rem 1.5rem;
 }
 @media (max-width: 880px) { #layout { grid-template-columns: 1fr; } }
@@ -98,6 +98,8 @@ body {
 .tab.is-active { color: var(--white); border-bottom-color: var(--turq); background: rgba(55,199,182,.06); }
 .tab-panel { display: none; flex: 1; min-height: 0; flex-direction: column; }
 .tab-panel.is-active { display: flex; }
+#ide-mount { flex: 1; min-height: 0; display: flex; }
+#ide-mount > #ide { flex: 1; }
 
 /* upload tab: vertical 30 / 70 */
 #upload-controls { flex: 0 0 30%; padding: 1rem; border-bottom: 1px solid var(--line); }
