@@ -1,0 +1,13 @@
+{
+  "name": "javalab",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Client-side Java sandbox (CheerpJ) — static site",
+  "type": "module",
+  "scripts": {
+    "spike": "node scripts/run-spike.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}
