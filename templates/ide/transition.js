@@ -4,7 +4,7 @@ export function playTransition() {
   return new Promise((resolve) => {
     const ov = document.createElement("div");
     ov.className = "ide-transition";
-    ov.innerHTML = '<span class="ide-transition-label">Simulating…</span>';
+    ov.innerHTML = '<span class="ide-transition-label">Simulating...</span>';
     document.body.appendChild(ov);
     let done = false;
     const finish = () => { if (done) return; done = true; ov.remove(); resolve(); };

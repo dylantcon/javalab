@@ -21,7 +21,7 @@ export function mountFiles(parent) {
   const render = () => {
     root.replaceChildren();
     const head = el("div", "ide-pane-head", "Files");
-    const add = el("button", "ide-mini", "+ .java");
+    const add = el("button", "ide-mini", "New");
     add.title = "New Java file";
     add.onclick = () => {
       const name = ensureJava(promptName("New file name (e.g. Helper.java)"));
@@ -36,11 +36,11 @@ export function mountFiles(parent) {
       label.onclick = () => state.selectFile(name);
       row.appendChild(label);
       if (name !== "MANIFEST.MF") {
-        row.appendChild(act("✎", "Rename", () => {
+        row.appendChild(act("ren", "Rename", () => {
           const nn = ensureJava(promptName("Rename to", name));
           if (nn && !state.hasFile(nn)) state.renameFile(name, nn);
         }));
-        row.appendChild(act("🗑", "Delete", () => { if (confirm(`Delete ${name}?`)) state.deleteFile(name); }));
+        row.appendChild(act("del", "Delete", () => { if (confirm(`Delete ${name}?`)) state.deleteFile(name); }));
       }
       root.appendChild(row);
     }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>JavaLab — Java in your browser</title>
+<title>JavaLab - Java in your browser</title>
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/ide.bundle.css">
 <!--APPS_DATA-->
@@ -21,7 +21,7 @@
 
     <div id="stage" hidden>
       <div id="stage-bar">
-        <button id="stage-back" type="button">&larr; Gallery</button>
+        <button id="stage-back" type="button">&lt;&lt; Gallery</button>
         <span id="stage-title"></span>
       </div>
       <div id="stage-host"><!-- per-app realm iframe goes here --></div>
@@ -39,10 +39,10 @@
       <div id="upload-controls">
         <label class="filepick" id="filepick">
           <input type="file" id="file-input" accept=".jar,application/java-archive" hidden>
-          <span class="filepick-label">Choose a <code>.jar</code> &mdash; or drop it here</span>
+          <span class="filepick-label">Choose a <code>.jar</code> - or drop it here</span>
         </label>
         <div id="storage-usage" aria-live="polite"></div>
-        <p class="boundary-note">Your jars are read in the browser and kept in this browser's storage only &mdash; never uploaded.</p>
+        <p class="boundary-note">Your jars are read in the browser and kept in this browser's storage only - never uploaded.</p>
       </div>
       <div id="upload-list" role="list"><!-- stored-jar cards injected by upload.js --></div>
     </div>
@@ -54,6 +54,6 @@
 </main>
 
 <script src="/ide.bundle.js" defer></script>
-<script type="module" src="/main.js"></script>
+<script src="/main.bundle.js" defer></script>
 </body>
 </html>

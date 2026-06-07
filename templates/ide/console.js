@@ -6,7 +6,11 @@ let term = null;
 export function mountConsole(parent) {
   term = new Terminal({
     convertEol: true, rows: 8, fontSize: 12, cursorBlink: false,
-    theme: { background: "#06141d", foreground: "#d6f5ef", cursor: "#37c7b6" },
+    fontFamily: '"Courier New", Courier, monospace',
+    theme: {
+      background: "#ffffff", foreground: "#101010", cursor: "#101010",
+      red: "#b00000", green: "#006b00", yellow: "#9a5b00",
+    },
   });
   term.open(parent);
   return term;
@@ -33,9 +37,9 @@ export function reportBuild({ ok, rc, diagnostics }) {
   const diags = parseDiagnostics(diagnostics);
   if (!term) return diags;
   if (ok) {
-    term.write("\x1b[32m✓ compiled\x1b[0m\r\n");
+    term.write("\x1b[32mBUILD SUCCESSFUL\x1b[0m\r\n");
   } else {
-    if (diags.length === 0) term.write(`\x1b[31m✗ build failed (rc=${rc})\x1b[0m\r\n`);
+    if (diags.length === 0) term.write(`\x1b[31mBUILD FAILED (rc=${rc})\x1b[0m\r\n`);
     for (const d of diags) {
       const col = d.severity === "error" ? "31" : "33";
       term.write(`\x1b[${col}m${d.file}:${d.line}: ${d.severity}:\x1b[0m ${d.message}\r\n`);

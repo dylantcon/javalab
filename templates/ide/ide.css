@@ -1,68 +1,94 @@
-/* JavaLab mini-IDE — a NetBeans-1.0 spirit in the site's Jazz palette. */
-#ide { display: flex; flex-direction: column; height: 100%; min-height: 0;
-       font-family: "Trebuchet MS", system-ui, sans-serif; color: #d6f5ef; }
+/* JavaLab mini-IDE — NetBeans-1.0 / Java-Metal / Windows-9x chrome.
+   Gray beveled panels, square corners, classic tree + light Output window. */
+#ide {
+  display: flex; flex-direction: column; height: 100%; min-height: 0;
+  font-family: Tahoma, Geneva, "MS Sans Serif", Verdana, sans-serif; font-size: 11px;
+  color: #0a0a0a; background: #c3c7cb;
+}
 
+/* --- toolbar --- */
 #ide-toolbar {
-  display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; padding: .4rem .5rem;
-  background: linear-gradient(#0e2331, #0a1b26); border-bottom: 1px solid #1c3a4a;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 3px; padding: 3px;
+  background: #c3c7cb; border-bottom: 1px solid #87898c;
 }
 .tb {
-  font: inherit; font-size: .76rem; color: #d6f5ef; cursor: pointer;
-  background: #0b1e2d; border: 1px solid #1c3a4a; border-radius: 6px; padding: .3rem .55rem;
+  font: inherit; font-size: 11px; color: #0a0a0a; cursor: pointer; background: #c3c7cb; padding: 2px 9px;
+  border: 1px solid; border-color: #fff #000 #000 #fff;
+  box-shadow: inset -1px -1px #87898c, inset 1px 1px #dfdfdf;
 }
-.tb:hover { border-color: #37c7b6; }
-.tb-primary { border-color: #37c7b6; color: #37c7b6; font-weight: 600; }
-.tb-primary:hover { background: #37c7b6; color: #06141d; }
-.tb-toggle.is-on { background: #6c5ce7; border-color: #6c5ce7; color: #fff; }
-.tb-spacer { flex: 1; }
+.tb:active { border-color: #000 #fff #fff #000; box-shadow: inset 1px 1px #87898c; }
+.tb-primary { font-weight: bold; }
+.tb-toggle.is-on { border-color: #000 #fff #fff #000; box-shadow: inset 1px 1px #87898c; background: #aebfbb; }
+.tb-sep { width: 2px; align-self: stretch; margin: 1px 3px; background: #87898c; box-shadow: 1px 0 #fff; }
 
-#ide-body { flex: 1; min-height: 0; display: flex; }
+#ide-body { flex: 1; min-height: 0; display: flex; gap: 2px; padding: 2px; }
 
-#ide-sidebar { width: 132px; flex: 0 0 132px; border-right: 1px solid #1c3a4a;
-               background: #08161f; overflow-y: auto; overscroll-behavior: contain; }
-.ide-pane-head { display: flex; align-items: center; justify-content: space-between;
-  font-size: .68rem; letter-spacing: .5px; text-transform: uppercase; color: #8fb7b0;
-  padding: .45rem .5rem; border-bottom: 1px solid #122734; }
-.ide-mini { font: inherit; font-size: .66rem; color: #37c7b6; background: transparent;
-  border: 1px solid #1c3a4a; border-radius: 5px; cursor: pointer; padding: .1rem .3rem; }
-.ide-mini:hover { border-color: #37c7b6; }
-.ide-file { display: flex; align-items: center; gap: .2rem; padding: .25rem .5rem; cursor: pointer; font-size: .76rem; }
-.ide-file:hover { background: #0e2331; }
-.ide-file.is-active { background: #122a39; border-left: 2px solid #37c7b6; }
+/* --- sidebar: file tree + manifest (sunken white) --- */
+#ide-sidebar { width: 150px; flex: 0 0 150px; display: flex; flex-direction: column; gap: 2px; }
+.ide-files, .ide-manifest {
+  background: #fff; border: 1px solid; border-color: #87898c #fff #fff #87898c;
+}
+.ide-files { flex: 1; min-height: 0; overflow: auto; }
+.ide-pane-head {
+  display: flex; align-items: center; justify-content: space-between; font-weight: bold; font-size: 11px;
+  color: #fff; background: linear-gradient(90deg, #1a1a40, #008c8c); padding: 2px 5px;
+}
+.ide-mini {
+  font: inherit; font-size: 10px; color: #0a0a0a; cursor: pointer; background: #c3c7cb; padding: 0 6px;
+  border: 1px solid; border-color: #fff #000 #000 #fff; box-shadow: inset -1px -1px #87898c;
+}
+.ide-mini:active { border-color: #000 #fff #fff #000; }
+.ide-file {
+  display: flex; align-items: center; gap: 3px; padding: 2px 5px; cursor: pointer; font-size: 11px;
+  color: #0a0a0a; font-family: "Courier New", Courier, monospace;
+}
+.ide-file.is-active { background: #1a1a40; }
+.ide-file.is-active .ide-file-name { color: #fff; }
 .ide-file-name { flex: 1; word-break: break-all; }
-.ide-file-act { background: none; border: none; cursor: pointer; font-size: .72rem; opacity: .5; padding: 0 .1rem; }
-.ide-file-act:hover { opacity: 1; }
+.ide-file-act {
+  font: inherit; font-size: 9px; cursor: pointer; background: #c3c7cb; color: #000; padding: 0 3px;
+  border: 1px solid; border-color: #fff #000 #000 #fff;
+}
+.ide-mf-row { display: flex; flex-direction: column; gap: 2px; padding: 4px 5px; font-size: 10px; color: #333; }
+.ide-mf-input {
+  font-family: "Courier New", Courier, monospace; font-size: 11px; color: #000; background: #fff; padding: 1px 3px;
+  border: 1px solid; border-color: #87898c #fff #fff #87898c; box-shadow: inset 1px 1px #aaa;
+}
+.ide-mf-input:focus { outline: 1px dotted #1a1a40; outline-offset: -2px; }
 
-.ide-manifest { border-top: 1px solid #122734; }
-.ide-mf-row { display: flex; flex-direction: column; gap: .2rem; padding: .4rem .5rem; font-size: .68rem; color: #8fb7b0; }
-.ide-mf-input { font: inherit; font-size: .74rem; color: #d6f5ef; background: #0b1e2d;
-  border: 1px solid #1c3a4a; border-radius: 5px; padding: .25rem .4rem; }
-.ide-mf-input:focus { outline: none; border-color: #37c7b6; }
+/* --- main: open-file tabs + editor + output --- */
+#ide-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#ide-tabs { display: flex; gap: 2px; }
+.ide-tab {
+  font: inherit; font-size: 11px; color: #0a0a0a; cursor: pointer; background: #b0b4b9; padding: 2px 10px;
+  font-family: "Courier New", Courier, monospace;
+  border: 1px solid; border-color: #fff #000 #c3c7cb #fff; border-bottom: none; white-space: nowrap;
+}
+.ide-tab.is-active { background: #c3c7cb; font-weight: bold; }
 
-#ide-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-#ide-tabs { display: flex; gap: 2px; background: #08161f; border-bottom: 1px solid #1c3a4a; overflow-x: auto; }
-.ide-tab { font: inherit; font-size: .74rem; color: #8fb7b0; background: #0b1e2d;
-  border: none; border-right: 1px solid #122734; padding: .35rem .6rem; cursor: pointer; white-space: nowrap; }
-.ide-tab.is-active { color: #fff; background: #122a39; border-bottom: 2px solid #37c7b6; }
-
-#ide-editor { flex: 1; min-height: 80px; overflow: hidden; }
+#ide-editor {
+  flex: 1; min-height: 60px; overflow: hidden; background: #fff;
+  border: 1px solid; border-color: #87898c #fff #fff #87898c;
+}
 #ide-editor .cm-editor { height: 100%; }
 
-#ide-console { height: 140px; flex: 0 0 140px; border-top: 1px solid #1c3a4a; background: #06141d; padding: 2px; }
+#ide-console {
+  height: 132px; flex: 0 0 132px; background: #fff; padding: 2px;
+  border: 1px solid; border-color: #87898c #fff #fff #87898c; box-shadow: inset 1px 1px #aaa;
+}
 #ide-console .xterm { height: 100%; }
 
-/* y2k PowerPoint-style transition overlay */
+/* --- y2k PowerPoint transition (gaudy on purpose) --- */
 .ide-transition {
   position: fixed; inset: 0; z-index: 9999; pointer-events: none;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(120deg, #6c5ce7, #37c7b6);
-  animation: ide-wipe .9s ease forwards;
-  clip-path: inset(0 0 0 0);
+  background: repeating-linear-gradient(45deg, #1a1a40 0 24px, #008c8c 24px 48px);
+  animation: ide-wipe .85s steps(14) forwards;
 }
-.ide-transition-label { color: #06141d; font: 700 1.6rem "Trebuchet MS", system-ui; letter-spacing: 2px; }
+.ide-transition-label { color: #fff; font: bold 22px Tahoma, sans-serif; letter-spacing: 1px; text-shadow: 2px 2px #000; }
 @keyframes ide-wipe {
-  0%   { clip-path: inset(0 100% 0 0); opacity: 1; }
-  45%  { clip-path: inset(0 0 0 0); opacity: 1; }
-  55%  { clip-path: inset(0 0 0 0); opacity: 1; }
-  100% { clip-path: inset(0 0 0 100%); opacity: 1; }
+  0%   { clip-path: inset(0 100% 0 0); }
+  45%  { clip-path: inset(0 0 0 0); }
+  55%  { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 0 0 100%); }
 }

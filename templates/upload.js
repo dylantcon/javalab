@@ -41,7 +41,7 @@ export async function refreshUploads() {
   const jars = await listJars();
   jars.sort((a, b) => b.added - a.added);
   if (jars.length === 0) {
-    listEl.innerHTML = '<div class="upload-empty">No jars yet — add one above to run it here.</div>';
+    listEl.innerHTML = '<div class="upload-empty">No jars yet - add one above to run it here.</div>';
   } else {
     listEl.replaceChildren(...jars.map(jarCard));
   }

@@ -21,7 +21,7 @@
     {
       "id": "swing-demo",
       "name": "Bounce",
-      "description": "An interactive Swing animation — add bouncing shapes and watch them go.",
+      "description": "An interactive Swing animation - add bouncing shapes and watch them go.",
       "source": "local",
       "sourceDir": "apps/swing-demo/src",
       "mainClass": "BounceDemo",

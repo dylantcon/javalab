@@ -30,27 +30,31 @@ const results = [];
 const check = (name, ok, detail = "") => { results.push({ name, ok }); log(`  ${ok ? "PASS" : "FAIL"}  ${name}${detail ? " — " + detail : ""}`); };
 
 // Load a screenshot buffer into a fresh canvas and count pixels near `rgb`.
-const countColor = (page, b64, rgb, tol = 44) => page.evaluate(async ({ s, rgb, tol }) => {
+// Count pixels matching the Bounce panel's indigo (#1a1a40) with a TIGHT
+// tolerance — distinct from white (the CheerpJ splash) and the #222/#06141d
+// loading states, so polling waits PAST the splash until the app truly paints.
+const PANEL = [0x1a, 0x1a, 0x40];
+const countPanel = (page, b64) => page.evaluate(async ({ s, p }) => {
   const img = new Image();
   await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = "data:image/png;base64," + s; });
   const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
   const ctx = c.getContext("2d"); ctx.drawImage(img, 0, 0);
   const d = ctx.getImageData(0, 0, c.width, c.height).data;
-  let hit = 0;
+  let n = 0;
   for (let i = 0; i < d.length; i += 4)
-    if (Math.abs(d[i] - rgb[0]) < tol && Math.abs(d[i + 1] - rgb[1]) < tol && Math.abs(d[i + 2] - rgb[2]) < tol) hit++;
-  return hit;
-}, { s: b64, rgb, tol });
+    if (Math.abs(d[i] - p[0]) < 14 && Math.abs(d[i + 1] - p[1]) < 14 && Math.abs(d[i + 2] - p[2]) < 14) n++;
+  return n;
+}, { s: b64, p: PANEL });
 
-// Poll screenshots until `rgb` appears (paint latency), or timeout. Saves last shot.
-async function waitForColor(page, rgb, shotPath, tries = 24) {
-  let hit = 0;
-  for (let i = 0; i < tries && hit <= 400; i++) {
-    const buf = await page.screenshot({ path: shotPath }).catch(() => null);
-    if (buf) hit = await countColor(page, buf.toString("base64"), rgb).catch(() => 0);
-    if (hit <= 400) await new Promise((r) => setTimeout(r, 1500));
+// Poll the DISPLAY element until the app's indigo panel appears (past the splash).
+async function waitForRender(page, selector, shotPath, tries = 38) {
+  let panel = 0;
+  for (let i = 0; i < tries && panel <= 3000; i++) {
+    const buf = await page.locator(selector).screenshot({ path: shotPath }).catch(() => null);
+    if (buf) panel = await countPanel(page, buf.toString("base64")).catch(() => 0);
+    if (panel <= 3000) await new Promise((r) => setTimeout(r, 1500));
   }
-  return hit;
+  return panel;
 }
 
 const hard = setTimeout(() => { log(`\n[e2e] HARD DEADLINE ${GLOBAL_MS}ms — forcing exit`); pkill(); process.exit(3); }, GLOBAL_MS);
@@ -98,8 +102,8 @@ try {
   await page.locator(".card").first().click();
   const stageShown = await page.evaluate(() => !document.getElementById("stage").hidden && document.querySelector("#stage-host iframe") != null);
   check("clicking card opens the stage with a realm iframe", stageShown);
-  const indigo = await waitForColor(page, [0x1a, 0x1a, 0x40], SHOT("gallery"));
-  check("curated Swing app renders (indigo panel pixels)", indigo > 400, `px=${indigo}`);
+  const panel = await waitForRender(page, "#stage-host", SHOT("gallery"));
+  check("curated Swing app actually renders (indigo panel past the splash)", panel > 3000, `panel px=${panel}`);
 
   // 4. close tears the realm down
   await page.locator("#stage-back").click();
@@ -119,8 +123,8 @@ try {
   check("jar bytes persisted in IndexedDB", persisted);
 
   await page.locator("#upload-list .jar-actions .run").first().click();
-  const indigo2 = await waitForColor(page, [0x1a, 0x1a, 0x40], SHOT("upload"));
-  check("uploaded jar runs in a fresh realm (indigo pixels)", indigo2 > 400, `px=${indigo2}`);
+  const panel2 = await waitForRender(page, "#stage-host", SHOT("upload"));
+  check("uploaded jar actually runs in a fresh realm (indigo panel past the splash)", panel2 > 3000, `panel px=${panel2}`);
 
   // ===== Tab 2: the mini-IDE =====
   await page.locator("#stage-back").click();

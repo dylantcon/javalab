@@ -30,6 +30,7 @@ export function init(container, ctx) {
   $("#tb-new").onclick = () => newSimulation();
   $("#tb-save").onclick = () => saveSimulation();
   $("#tb-run").onclick = () => simulate();
+  $("#tb-format").onclick = () => formatCurrent();
   $("#tb-export").onclick = () => exportZip();
   const vimBtn = $("#tb-vim");
   vimBtn.onclick = () => { setVim(!isVim()); vimBtn.classList.toggle("is-on", isVim()); };
@@ -37,10 +38,10 @@ export function init(container, ctx) {
   // Alt+Shift+F → google-java-format in the build realm (basic-indent fallback).
   setFormatHook(async (name, src) => {
     if (!name.endsWith(".java")) throw new Error("not-java");
-    writeLine("Formatting " + name + "…");
+    writeLine("Formatting " + name + "...");
     const r = await formatInRealm(name, src);
-    if (r.ok && r.formatted) { writeLine("\x1b[32m✓ formatted\x1b[0m"); return r.formatted; }
-    writeLine("\x1b[33mformat unavailable — basic indent\x1b[0m");
+    if (r.ok && r.formatted) { writeLine("\x1b[32mFORMATTED\x1b[0m"); return r.formatted; }
+    writeLine("\x1b[33mformat unavailable - basic indent\x1b[0m");
     throw new Error("format-failed");
   });
 
@@ -70,10 +71,12 @@ function mountTabStrip(parent) {
 const LAYOUT = `
   <div id="ide">
     <div id="ide-toolbar">
-      <button id="tb-new" class="tb">New sim</button>
+      <button id="tb-new" class="tb">New</button>
       <button id="tb-save" class="tb">Save</button>
-      <button id="tb-run" class="tb tb-primary">&#9654; Simulate</button>
-      <button id="tb-export" class="tb" title="Export sources as .zip">Export .zip</button>
+      <button id="tb-run" class="tb tb-primary">Simulate</button>
+      <button id="tb-format" class="tb" title="Reformat (Alt+Shift+F)">Format</button>
+      <button id="tb-export" class="tb" title="Export sources as .zip">Export</button>
+      <span class="tb-sep"></span>
       <button id="tb-vim" class="tb tb-toggle" title="Toggle Vim keybindings">Vim</button>
     </div>
     <div id="ide-body">

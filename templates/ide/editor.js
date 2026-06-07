@@ -6,7 +6,6 @@ import { indentWithTab, indentSelection } from "@codemirror/commands";
 import { java } from "@codemirror/lang-java";
 import { lintGutter, linter, forceLinting } from "@codemirror/lint";
 import { vim } from "@replit/codemirror-vim";
-import { oneDark } from "@codemirror/theme-one-dark";
 import { basicSetup } from "codemirror";
 import * as state from "./state.js";
 
@@ -71,7 +70,6 @@ function makeState(doc) {
       vimComp.of(vimOn ? vim() : []),
       basicSetup,
       java(),
-      oneDark,
       javacLinter,
       lintGutter(),
       keymap.of([
@@ -81,9 +79,15 @@ function makeState(doc) {
       EditorView.updateListener.of((u) => {
         if (u.docChanged && displayed) state.setFile(displayed, u.state.doc.toString(), { silent: true });
       }),
+      // Classic light editor (NetBeans-1.0 feel): white, Courier, grey gutter.
       EditorView.theme({
-        "&": { height: "100%", fontSize: "13px" },
-        ".cm-scroller": { fontFamily: "Menlo, Consolas, monospace" },
+        "&": { height: "100%", fontSize: "13px", backgroundColor: "#ffffff", color: "#000000" },
+        ".cm-scroller": { fontFamily: '"Courier New", Courier, monospace', lineHeight: "1.35" },
+        ".cm-gutters": { backgroundColor: "#e4e4e4", color: "#555", border: "none", borderRight: "1px solid #999" },
+        ".cm-activeLine": { backgroundColor: "#eef3ff" },
+        ".cm-activeLineGutter": { backgroundColor: "#dde6f5" },
+        ".cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection": { backgroundColor: "#b5d5ff" },
+        ".cm-cursor": { borderLeftColor: "#000" },
       }),
     ],
   });

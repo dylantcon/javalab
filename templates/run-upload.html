@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Running… — JavaLab</title>
+<title>Running... - JavaLab</title>
 <style>
   html, body { margin: 0; height: 100%; background: #06141d; color: #d6f5ef;
                font-family: Menlo, Consolas, monospace; }
@@ -16,12 +16,12 @@
 </head>
 <body>
 <div id="wrap">
-  <div id="app"><div id="status">Loading Java runtime…</div></div>
+  <div id="app"><div id="status">Loading Java runtime...</div></div>
   <pre id="console" aria-label="Program output"></pre>   <!-- CheerpJ writes stdout/stderr here -->
 </div>
 
 <!-- A visitor's jar (uploaded OR built in the IDE) runs in its own realm here.
-     Bytes come from IndexedDB (this origin, client-only) → CheerpJ's in-memory
+     Bytes come from IndexedDB (this origin, client-only) into CheerpJ's in-memory
      /str mount; they never touch the network. Java 17 runs 8/11/17 bytecode. -->
 <script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
 <script type="module">

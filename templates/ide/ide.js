@@ -16,7 +16,7 @@ const jarName = () => (mainClass().split(".").pop() || "simulation") + ".jar";
 /** Compile + (on success) store the jar in the library. Returns {ok, jarName?}. */
 export async function saveSimulation() {
   clearConsole();
-  writeLine("Compiling…");
+  writeLine("Compiling...");
   const files = state.javaFiles().map((name) => ({ name, content: state.getFile(name) }));
   if (files.length === 0) { writeLine("\x1b[31mNo .java files to compile.\x1b[0m"); return { ok: false }; }
   const manifest = state.getFile("MANIFEST.MF") || `Main-Class: ${mainClass()}\n`;
