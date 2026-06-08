@@ -152,6 +152,11 @@ body {
 }
 .jar-name { font-size: 11px; color: var(--ink); word-break: break-all; font-family: "Courier New", monospace; }
 .jar-meta { font-size: 10px; color: #444; }
+.jar-rt { font-size: 10px; color: #444; display: flex; align-items: center; gap: 4px; }
+.jar-rt select {
+  font: inherit; font-size: 10px; padding: 1px; background: #fff; color: var(--ink);
+  border: 1px solid; border-color: var(--dk) var(--hi) var(--hi) var(--dk);
+}
 .jar-actions { display: flex; gap: 4px; }
 .jar-actions button {
   flex: 1; font: inherit; font-size: 10px; cursor: pointer; padding: 2px; background: var(--face); color: var(--ink);

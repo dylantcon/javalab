@@ -125,6 +125,21 @@ Javarominoes' synth pattern). Run with `crossOriginIsolated=false` (NO COOP/COEP
 - `AUDIO-SUPPORTED true`, `AUDIO-OPEN ok`, `AUDIO-WROTE 8820`, `AUDIO-RESULT ok`
   — the `SourceDataLine` opened and accepted audio with **no LineUnavailableException**.
 
+> **CRITICAL (round 5b): audio is Java 8 ONLY.** Re-ran a PRE-BUILT Java-8 audio
+> jar across runtimes (`run-spike.mjs <ver> runaudio`, `public/spike/soundthread.jar`):
+> - Java **8**  → `AUDIO-SUPPORTED true` … `AUDIO-RESULT ok` (exit 0). ✅
+> - Java **11** → `AUDIO-SUPPORTED false` → `IllegalArgumentException: No line
+>   matching interface SourceDataLine … is supported` (exit 11). ❌
+> - Java **17** → same failure as 11 (exit 11). ❌
+> Threads still work on all three. CheerpJ 4.3 only ships the audio mixer on the
+> Java 8 runtime. **Consequence:** any jar that wants `SourceDataLine` MUST run on
+> Java 8 (and therefore be Java-8 bytecode). The launcher now auto-detects each
+> jar's bytecode major version and pins the runtime (≤52→8, ≤55→11, else 17), so
+> plain Java-8 jars get audio automatically; a per-jar selector overrides it. The
+> IDE compiles Java 8, so its simulations run on Java 8 and keep audio. Curated
+> apps that need both audio AND Java-17 language features are impossible on CheerpJ
+> 4.3 — pick one (e.g. backport Javarominoes to Java 8 to keep its synth).
+
 **Resolution of the brief's biggest deployment unknown: cross-origin isolation
 is NOT required.** Threads and the audio pipeline both initialise without it. So:
 - **Do NOT set COOP/COEP** on the `javalab` nginx block — avoids the CDN

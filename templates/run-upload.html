@@ -22,7 +22,8 @@
 
 <!-- A visitor's jar (uploaded OR built in the IDE) runs in its own realm here.
      Bytes come from IndexedDB (this origin, client-only) into CheerpJ's in-memory
-     /str mount; they never touch the network. Java 17 runs 8/11/17 bytecode. -->
+     /str mount; they never touch the network. The runtime version comes from the
+     query (?version=) - chosen per jar from its bytecode; only Java 8 has audio. -->
 <script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
 <script type="module">
 import { getBytes } from "/idb.js";

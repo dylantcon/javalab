@@ -28,7 +28,7 @@ export async function saveSimulation() {
 
   if (result.ok && result.jarBytes) {
     const name = jarName();
-    await ctx?.putJar(name, result.jarBytes);
+    await ctx?.putJar(name, result.jarBytes, 8);   // builder emits Java 8 bytecode -> run on 8 (audio works)
     ctx?.refreshUploads?.();
     writeLine(`\x1b[36mSaved ${name} to your library.\x1b[0m`);
     return { ok: true, jarName: name };
@@ -42,5 +42,5 @@ export async function simulate() {
   if (!r.ok) return;
   ctx?.switchToUpload?.();
   await playTransition();
-  ctx?.openStage?.(r.jarName, "/run-upload.html?key=" + encodeURIComponent(r.jarName) + "&w=820&h=600", 820, 600);
+  ctx?.openStage?.(r.jarName, "/run-upload.html?key=" + encodeURIComponent(r.jarName) + "&w=820&h=600&version=8", 820, 600);
 }

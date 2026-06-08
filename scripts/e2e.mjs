@@ -21,6 +21,7 @@ const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const PORT = 8099;
 const BASE = `http://127.0.0.1:${PORT}`;
 const JAR = join(ROOT, "public/apps/swing-demo/swing-demo.jar");
+const SOUNDJAR = join(ROOT, "public/spike/soundthread.jar");   // Java-8 SourceDataLine probe
 const SHOT = (n) => join(ROOT, `spike/e2e-${n}.png`);
 const GLOBAL_MS = 360_000;   // IDE flow loads two CheerpJ realms (build + run)
 const log = (s) => process.stdout.write(s + "\n");
@@ -128,9 +129,27 @@ try {
   });
   check("jar bytes persisted in IndexedDB", persisted);
 
+  check("uploaded Java-8 jar auto-selects the Java 8 runtime (for audio)",
+    await page.locator("#upload-list .jar-card .rt").first().inputValue() === "8");
+
   await page.locator("#upload-list .jar-actions .run").first().click();
   const panel2 = await waitForRender(page, "#stage-host", SHOT("upload"));
   check("uploaded jar actually runs in a fresh realm (indigo panel past the splash)", panel2 > 3000, `panel px=${panel2}`);
+
+  // 5b. audio: a Java-8 jar runs on Java 8 so SourceDataLine actually works
+  //     (CheerpJ 4.3 has no audio on 11/17 — the whole reason we detect+pin the runtime)
+  await page.locator("#stage-back").click();
+  await page.setInputFiles("#file-input", SOUNDJAR);
+  await page.waitForFunction(
+    () => [...document.querySelectorAll("#upload-list .jar-name")].some((n) => n.textContent.includes("soundthread.jar")),
+    undefined, { timeout: 10_000 });
+  const sndRt = await page.evaluate(() => {
+    const card = [...document.querySelectorAll("#upload-list .jar-card")].find((c) => c.querySelector(".jar-name")?.textContent.includes("soundthread.jar"));
+    card?.querySelector(".jar-actions .run")?.click();
+    return card?.querySelector(".rt")?.value;
+  });
+  check("Java-8 jar auto-detected as Java 8 and gets WORKING audio (AUDIO-RESULT ok)",
+    sndRt === "8" && await waitForFrameConsole("AUDIO-RESULT ok", "run-upload", 90_000), `runtime=${sndRt}`);
 
   // ===== Tab 2: the mini-IDE =====
   await page.locator("#stage-back").click();

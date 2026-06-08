@@ -20,11 +20,22 @@ function open() {
 const done = (txn) => new Promise((res, rej) => { txn.oncomplete = () => res(); txn.onerror = () => rej(txn.error); txn.onabort = () => rej(txn.error); });
 const reqP = (req) => new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); });
 
-export async function putJar(name, arrayBuffer) {
+export async function putJar(name, arrayBuffer, version = 17) {
   const db = await open();
   const txn = db.transaction([META, BLOBS], "readwrite");
-  txn.objectStore(META).put({ name, size: arrayBuffer.byteLength, added: Date.now() });
+  txn.objectStore(META).put({ name, size: arrayBuffer.byteLength, added: Date.now(), version });
   txn.objectStore(BLOBS).put({ name, bytes: arrayBuffer });
+  await done(txn);
+}
+
+/** Update the chosen CheerpJ runtime version for a stored jar. */
+export async function setJarVersion(name, version) {
+  const db = await open();
+  const meta = await reqP(db.transaction(META, "readonly").objectStore(META).get(name));
+  if (!meta) return;
+  meta.version = version;
+  const txn = db.transaction(META, "readwrite");
+  txn.objectStore(META).put(meta);
   await done(txn);
 }
 
