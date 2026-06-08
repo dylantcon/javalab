@@ -22,6 +22,14 @@ try {
   await page.locator(".ide-menu-top").first().click().catch(() => {});   // open File menu
   await page.waitForTimeout(150);
   await page.screenshot({ path: join(ROOT, "spike/shot-ide.png") });
+
+  // launch the demo, let it render, maximize, capture
+  await page.goto("http://127.0.0.1:8091/", { waitUntil: "load" });
+  await page.locator(".card").first().click();
+  await page.waitForTimeout(16000);            // CheerpJ load + paint
+  await page.click("#stage-max").catch(() => {});
+  await page.waitForTimeout(5000);
+  await page.screenshot({ path: join(ROOT, "spike/shot-max.png") });
   console.log("[shot] saved spike/shot-launcher.png, spike/shot-ide.png");
 } finally {
   await browser.close().catch(() => {});

@@ -105,6 +105,12 @@ try {
   const panel = await waitForRender(page, "#stage-host", SHOT("gallery"));
   check("curated Swing app actually renders (indigo panel past the splash)", panel > 3000, `panel px=${panel}`);
 
+  // 3b. Maximize fills the viewport (stage goes fixed-fullscreen, display scales)
+  await page.click("#stage-max");
+  const maxed = await page.evaluate(() => document.getElementById("stage").classList.contains("is-max") && /scale\(/.test(document.querySelector("#stage-host iframe").style.transform || ""));
+  check("Maximize fills the viewport (scaled display)", maxed);
+  await page.click("#stage-max");   // restore
+
   // 4. close tears the realm down
   await page.locator("#stage-back").click();
   const closed = await page.evaluate(() => document.getElementById("stage").hidden && document.querySelector("#stage-host iframe") == null && !document.getElementById("gallery-grid").hidden);

@@ -60,7 +60,7 @@ function jarCard(meta) {
       `<button class="evict" type="button">Evict</button>` +
     `</div>`;
   el.querySelector(".run").addEventListener("click", () =>
-    openStage(meta.name, `/run-upload.html?key=${encodeURIComponent(meta.name)}`, 700, 520));
+    openStage(meta.name, `/run-upload.html?key=${encodeURIComponent(meta.name)}&w=820&h=600`, 820, 600));
   el.querySelector(".evict").addEventListener("click", async () => {
     await removeJar(meta.name);
     await refreshUploads();

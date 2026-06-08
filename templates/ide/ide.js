@@ -42,5 +42,5 @@ export async function simulate() {
   if (!r.ok) return;
   ctx?.switchToUpload?.();
   await playTransition();
-  ctx?.openStage?.(r.jarName, "/run-upload.html?key=" + encodeURIComponent(r.jarName), 700, 520);
+  ctx?.openStage?.(r.jarName, "/run-upload.html?key=" + encodeURIComponent(r.jarName) + "&w=820&h=600", 820, 600);
 }

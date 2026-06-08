@@ -28,7 +28,7 @@
       "artifact": "swing-demo.jar",
       "javaTarget": 8,
       "cheerpjVersion": 8,
-      "display": { "w": 360, "h": 320 },
+      "display": { "w": 560, "h": 460 },
       "thumbnail": "thumbnail.svg",
       "webNotes": "Demo app shipped with JavaLab to exercise the gallery; replace with curated submodules."
     }

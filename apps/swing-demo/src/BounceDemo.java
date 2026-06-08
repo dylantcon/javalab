@@ -46,9 +46,9 @@ class BouncePanel extends JPanel {
     final Random rng = new Random(42);
 
     BouncePanel() {
-        setPreferredSize(new Dimension(360, 260));
+        setPreferredSize(new Dimension(520, 360));
         setBackground(BG);
-        for (int i = 0; i < 6; i++) addBall();
+        for (int i = 0; i < 9; i++) addBall();
         new Timer(16, e -> { step(); repaint(); }).start();
     }
 
@@ -78,8 +78,8 @@ class Ball {
     Color color;
 
     Ball(Random rng, Color c) {
-        x = 40 + rng.nextInt(280);
-        y = 40 + rng.nextInt(180);
+        x = 40 + rng.nextInt(440);
+        y = 40 + rng.nextInt(280);
         vx = (rng.nextDouble() * 2 - 1) * 3 + 1.0;
         vy = (rng.nextDouble() * 2 - 1) * 3 + 1.0;
         r = 8 + rng.nextInt(14);

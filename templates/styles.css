@@ -94,19 +94,22 @@ body {
 
 /* --- stage (a launched app) --- */
 #stage { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--face); }
+#stage.is-max { position: fixed; inset: 0; z-index: 1000; margin: 0; }
 #stage-bar {
   display: flex; align-items: center; gap: 6px; padding: 2px 4px; margin: 2px;
   color: var(--hi); background: linear-gradient(90deg, var(--navy), var(--teal)); border: 1px solid var(--dk);
 }
 #stage-title { font-weight: bold; font-size: 11px; }
-#stage-back {
+.stage-spacer { flex: 1; }
+#stage-back, #stage-max {
   background: var(--face); color: var(--ink); font: inherit; font-size: 11px; cursor: pointer;
   border: 1px solid; border-color: var(--hi) var(--dk) var(--dk) var(--hi);
   box-shadow: inset -1px -1px var(--lo), inset 1px 1px var(--light); padding: 1px 8px;
 }
-#stage-back:active { border-color: var(--dk) var(--hi) var(--hi) var(--dk); box-shadow: inset 1px 1px var(--lo); }
+#stage-back:active, #stage-max:active { border-color: var(--dk) var(--hi) var(--hi) var(--dk); box-shadow: inset 1px 1px var(--lo); }
 #stage-host { flex: 1; display: flex; align-items: center; justify-content: center; padding: 6px; margin: 2px;
-  background: var(--face-2); box-shadow: inset 1px 1px var(--lo), inset -1px -1px var(--hi); }
+  overflow: hidden; background: var(--face-2); box-shadow: inset 1px 1px var(--lo), inset -1px -1px var(--hi); }
+#stage.is-max #stage-host { background: #06141d; margin: 0; box-shadow: none; }
 .realm-frame { border: 1px solid var(--dk); background: #222; }
 
 /* --- right: sandbox panel with classic tabs --- */
