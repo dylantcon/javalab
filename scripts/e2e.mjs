@@ -106,6 +106,17 @@ try {
   const panel = await waitForRender(page, "#stage-host", SHOT("gallery"));
   check("curated Swing app actually renders (indigo panel past the splash)", panel > 3000, `panel px=${panel}`);
 
+  // 3a. the (non-maximized) stage stays inside its gallery column — it must not
+  //     spill across the splitter onto the sandbox tabs (#stage needs a positioned
+  //     containing block, else absolute inset:0 escapes to the viewport).
+  const confined = await page.evaluate(() => {
+    const r = (s) => document.querySelector(s).getBoundingClientRect();
+    const st = r("#stage"), tb = r("#tabbar"), fr = document.querySelector("#stage-host iframe").getBoundingClientRect();
+    const noTouch = (a) => a.right <= tb.left + 1;   // stage + scaled canvas stay left of the tabs
+    return noTouch(st) && noTouch(fr);
+  });
+  check("running app stays in its column (no overlap with the sandbox tabs)", confined);
+
   // 3b. Maximize fills the viewport (stage goes fixed-fullscreen, display scales)
   await page.click("#stage-max");
   const maxed = await page.evaluate(() => document.getElementById("stage").classList.contains("is-max") && /scale\(/.test(document.querySelector("#stage-host iframe").style.transform || ""));

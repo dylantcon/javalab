@@ -60,6 +60,7 @@ body {
   background: var(--face); border: 1px solid var(--dk);
   box-shadow: inset -1px -1px var(--lo), inset 1px 1px var(--hi);
   display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  position: relative;   /* contain the absolutely-positioned #stage to this column */
 }
 
 /* --- left: gallery --- */
