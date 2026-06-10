@@ -48,6 +48,10 @@ for (const app of apps) {
 
   if (app.source === "local") {
     await buildLocal(app, outDir);
+  } else if (app.source === "prebuilt") {
+    // Copy a jar committed under apps/<id>/<artifact> (built once from an
+    // upstream repo with our javac; no toolchain needed at deploy time).
+    await cp(join(appDir(app.id), app.artifact), join(outDir, app.artifact));
   } else {
     console.error(`[build] ${app.id}: source='${app.source}' not implemented yet`);
     process.exit(1);

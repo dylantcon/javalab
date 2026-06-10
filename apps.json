@@ -5,11 +5,11 @@
       "id": "url-safe slug; also the public/apps/<id>/ directory",
       "name": "display label on the gallery card",
       "description": "one-line blurb",
-      "source": "'local' (compile sourceDir with our javac) | 'submodule' (run build cmd) | 'prebuilt' (copy an existing jar)",
+      "source": "'local' (compile sourceDir with our javac) | 'submodule' (run build cmd) | 'prebuilt' (copy apps/<id>/<artifact>, a jar built once from an upstream repo)",
       "sourceDir": "for source=local: dir of .java files to compile (relative to repo root)",
       "build": "for source=submodule: build command",
       "mainClass": "Main-Class written into the jar manifest (source=local)",
-      "artifact": "output jar filename under public/apps/<id>/",
+      "artifact": "output jar filename under public/apps/<id>/ (for source=prebuilt, also the committed jar under apps/<id>/)",
       "javaTarget": "javac --release level; build fails if > 17 (CheerpJ ceiling)",
       "cheerpjVersion": "8 | 11 | 17 — the runtime the loader inits for this app",
       "display": "{ w, h } CheerpJ display size in px",
@@ -18,6 +18,126 @@
     }
   },
   "apps": [
+    {
+      "id": "javarominoes",
+      "name": "Javarominoes",
+      "description": "Tetris-inspired block-stacking puzzle game built with Java Swing.",
+      "source": "prebuilt",
+      "artifact": "Javarominoes.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 1280, "h": 720 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/javarominoes (NetBeans Ant, Java 8). Jar bundles the chiptune-synth library (its in-game music engine) so the single jar is self-contained; chiptune audio needs the Java-8 runtime. Native 1280x720; the stage scales it to fit."
+    },
+    {
+      "id": "seas-of-yore",
+      "name": "Seas of Yore",
+      "description": "A medieval Battleship-inspired board game with custom sprites and modes.",
+      "source": "prebuilt",
+      "artifact": "SeasOfYore.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 800, "h": 800 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/seas-of-yore (NetBeans Ant, Java 8). Image assets live at the jar root under images/ (loaded via getResource('/images/...')). ~6 MB jar — most of it is the title art."
+    },
+    {
+      "id": "draw-shapes",
+      "name": "Draw Shapes",
+      "description": "Lightweight drawing program: shapes, colors, brush sizes, undo, load/save.",
+      "source": "prebuilt",
+      "artifact": "DrawShapes.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 640, "h": 480 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/draw-shapes (NetBeans Ant, Java 8). Toolbar icons load from images/ at the jar root. Save/Load use the CheerpJ virtual filesystem, not the host disk."
+    },
+    {
+      "id": "chiptune-synth",
+      "name": "ChiptuneSynth",
+      "description": "NES 2A03-style chiptune synth — pulse/triangle/noise channels and percussion.",
+      "source": "prebuilt",
+      "artifact": "ChiptuneSynth.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 480, "h": 360 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/chiptune-synth, which is a LIBRARY (no main). This jar adds a small launcher (apps/chiptune-synth/launcher/ChiptuneDemo.java): a built-in looping song + a play/stop/volume UI. Audio via javax.sound.sampled — CheerpJ supports this on Java 8 only."
+    },
+    {
+      "id": "ten-color-chooser",
+      "name": "Ten-Color Chooser",
+      "description": "Swing color workbench: ten rows with pickers, darken/brighten, live hex.",
+      "source": "prebuilt",
+      "artifact": "TenColorChooser.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 640, "h": 480 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/ten-color-chooser (Maven layout, src/main/java, release 8). Compiled with our javac; pure JDK, no external deps."
+    },
+    {
+      "id": "stopwatch",
+      "name": "Stopwatch",
+      "description": "Swing stopwatch with min:sec:msec display, pause/resume, and reset.",
+      "source": "prebuilt",
+      "artifact": "Stopwatch.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 640, "h": 480 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/stopwatch (NetBeans Ant, Java 8). Pure Swing; runs as-is."
+    },
+    {
+      "id": "guess",
+      "name": "Guess",
+      "description": "Swing number-guessing game (1-1000) with styled feedback and validation.",
+      "source": "prebuilt",
+      "artifact": "Guess.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 640, "h": 480 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/guess (NetBeans Ant, Java 8). Pure Swing; runs as-is."
+    },
+    {
+      "id": "site-selector",
+      "name": "Site Selector",
+      "description": "A very lightweight web browser written in Java Swing.",
+      "source": "prebuilt",
+      "artifact": "SiteSelector.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 800, "h": 600 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/site-selector (NetBeans Ant, Java 8). The UI launches, but page fetching depends on outbound network the CheerpJ browser sandbox does not provide — expect the chrome to render without loading remote sites."
+    },
+    {
+      "id": "tic-tac-toe-client",
+      "name": "Tic-Tac-Toe (Client)",
+      "description": "Swing client for a networked two-player tic-tac-toe game over sockets.",
+      "source": "prebuilt",
+      "artifact": "TicTacToeClientTest.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 320, "h": 240 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/tic-tac-toe-client (NetBeans Ant, Java 8). The window launches, but it needs a TCP socket to a tic-tac-toe-server; CheerpJ has no raw sockets and no server is deployed, so connection will fail. Wired for completeness."
+    },
+    {
+      "id": "tic-tac-toe-server",
+      "name": "Tic-Tac-Toe (Server)",
+      "description": "Multithreaded socket server for a networked two-player tic-tac-toe game.",
+      "source": "prebuilt",
+      "artifact": "TicTacToeServerTest.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 420, "h": 300 },
+      "thumbnail": "thumbnail.svg",
+      "webNotes": "From github.com/dylantcon/tic-tac-toe-server (NetBeans Ant, Java 8). Headless: it opens a ServerSocket and has no GUI, so the display stays blank and sockets are unavailable under CheerpJ. Wired for completeness as a portfolio entry."
+    },
     {
       "id": "swing-demo",
       "name": "Bounce",
@@ -30,7 +150,7 @@
       "cheerpjVersion": 8,
       "display": { "w": 560, "h": 460 },
       "thumbnail": "thumbnail.svg",
-      "webNotes": "Demo app shipped with JavaLab to exercise the gallery; replace with curated submodules."
+      "webNotes": "Demo app shipped with JavaLab to exercise the gallery."
     }
   ]
 }

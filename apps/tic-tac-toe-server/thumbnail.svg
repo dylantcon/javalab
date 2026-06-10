@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Java application">
+  <rect width="120" height="120" rx="10" fill="#11122b"/>
+  <!-- steam -->
+  <g fill="none" stroke="#5dff9c" stroke-width="3" stroke-linecap="round" opacity="0.8">
+    <path d="M50 44 q-7 -9 0 -16 q7 -9 0 -16"/>
+    <path d="M60 44 q-7 -9 0 -16 q7 -9 0 -16"/>
+    <path d="M70 44 q-7 -9 0 -16 q7 -9 0 -16"/>
+  </g>
+  <!-- saucer -->
+  <ellipse cx="60" cy="88" rx="34" ry="7" fill="#6c5ce7"/>
+  <!-- cup -->
+  <path d="M38 52 h44 v6 a22 22 0 0 1 -22 22 a22 22 0 0 1 -22 -22 Z" fill="#37c7b6"/>
+  <!-- handle -->
+  <path d="M82 56 a14 14 0 0 1 0 26" fill="none" stroke="#37c7b6" stroke-width="7"/>
+</svg>
