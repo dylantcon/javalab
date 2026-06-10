@@ -13,6 +13,7 @@
       "javaTarget": "javac --release level; build fails if > 17 (CheerpJ ceiling)",
       "cheerpjVersion": "8 | 11 | 17 — the runtime the loader inits for this app",
       "display": "{ w, h } CheerpJ display size in px",
+      "relay": "optional true — app bundles the javalabrelay client; loader registers cheerpj-shim.js natives, sets javalab.browser=true, and passes --browser (pair/fetch over wss://javalab.dconn.dev/relay)",
       "thumbnail": "image filename (relative to the app dir) copied to public/apps/<id>/",
       "webNotes": "porting caveats (see each app's WEB_NOTES.md; do not revert)"
     }
@@ -28,7 +29,7 @@
       "cheerpjVersion": 8,
       "display": { "w": 1280, "h": 720 },
       "thumbnail": "thumbnail.png",
-      "webNotes": "From github.com/dylantcon/javarominoes (NetBeans Ant, Java 8). Jar bundles the chiptune-synth library (its in-game music engine) so the single jar is self-contained; chiptune audio needs the Java-8 runtime. Native 1280x720; the stage scales it to fit."
+      "webNotes": "From github.com/dylantcon/javarominoes (NetBeans Ant, Java 8). Jar bundles the chiptune-synth engine (chiptunesynth.*); the song classes (Korobeiniki, Wily, DuckTales Moon, Hyrule Temple, ...) live in javarominoes/model/music. MIDI playback was dropped — all music is synthesized, so audio needs the Java-8 runtime. Native 1280x720; the stage scales it to fit."
     },
     {
       "id": "seas-of-yore",
@@ -39,8 +40,9 @@
       "javaTarget": 8,
       "cheerpjVersion": 8,
       "display": { "w": 800, "h": 800 },
+      "relay": true,
       "thumbnail": "thumbnail.png",
-      "webNotes": "From github.com/dylantcon/seas-of-yore (NetBeans Ant, Java 8). Image assets live at the jar root under images/ (loaded via getResource('/images/...')). ~6 MB jar — most of it is the title art."
+      "webNotes": "From github.com/dylantcon/seas-of-yore (NetBeans Ant, Java 8). Bundles the javalabrelay client; online multiplayer (host/join a room code) runs over wss://javalab.dconn.dev/relay via the cheerpj-shim.js WebSocket natives + javalab.browser=true. Image assets live at the jar root under images/. ~6 MB jar — most of it is the title art."
     },
     {
       "id": "draw-shapes",
@@ -57,14 +59,14 @@
     {
       "id": "chiptune-synth",
       "name": "ChiptuneSynth",
-      "description": "NES 2A03-style chiptune synth — pulse/triangle/noise channels and percussion.",
+      "description": "NES 2A03-style chiptune player — pick a track and play; pulse/triangle/noise + percussion.",
       "source": "prebuilt",
       "artifact": "ChiptuneSynth.jar",
       "javaTarget": 8,
       "cheerpjVersion": 8,
-      "display": { "w": 480, "h": 360 },
+      "display": { "w": 380, "h": 420 },
       "thumbnail": "thumbnail.png",
-      "webNotes": "From github.com/dylantcon/chiptune-synth, which is a LIBRARY (no main). This jar adds a small launcher (apps/chiptune-synth/launcher/ChiptuneDemo.java): a built-in looping song + a play/stop/volume UI. Audio via javax.sound.sampled — CheerpJ supports this on Java 8 only."
+      "webNotes": "From github.com/dylantcon/chiptune-synth. Operator-supplied prebuilt jar running chiptunesynth.player.ChiptunePlayer — the dedicated runner with the full song library (Korobeiniki, Wily, DuckTales Moon, Hyrule Temple, Contra Jungle, Flashman, Bloody Tears, Surf City). Native window 380x420. Audio via javax.sound.sampled — CheerpJ supports this on Java 8 only. (Replaced the earlier ChiptuneDemo launcher.)"
     },
     {
       "id": "ten-color-chooser",
@@ -111,46 +113,45 @@
       "javaTarget": 8,
       "cheerpjVersion": 8,
       "display": { "w": 800, "h": 600 },
+      "relay": true,
       "thumbnail": "thumbnail.png",
-      "webNotes": "From github.com/dylantcon/site-selector (NetBeans Ant, Java 8). The UI launches, but page fetching depends on outbound network the CheerpJ browser sandbox does not provide — expect the chrome to render without loading remote sites."
+      "webNotes": "From github.com/dylantcon/site-selector (NetBeans Ant, Java 8). Bundles the javalabrelay client; when run with javalab.browser=true it fetches pages through the relay's guarded GET proxy (FETCH over wss://javalab.dconn.dev/relay) instead of a direct cross-origin request, so remote sites load."
     },
     {
-      "id": "tic-tac-toe-client",
-      "name": "Tic-Tac-Toe (Client)",
-      "description": "Swing client for a networked two-player tic-tac-toe game over sockets.",
+      "id": "triangles",
+      "name": "Triangles",
+      "description": "A Swing animation of drifting, colorful triangles.",
       "source": "prebuilt",
-      "artifact": "TicTacToeClientTest.jar",
+      "artifact": "triangles.jar",
       "javaTarget": 8,
       "cheerpjVersion": 8,
-      "display": { "w": 320, "h": 240 },
+      "display": { "w": 500, "h": 500 },
       "thumbnail": "thumbnail.png",
-      "webNotes": "From github.com/dylantcon/tic-tac-toe-client (NetBeans Ant, Java 8). The window launches, but it needs a TCP socket to a tic-tac-toe-server; CheerpJ has no raw sockets and no server is deployed, so connection will fail. Wired for completeness."
+      "webNotes": "Operator-supplied prebuilt jar (default-package Triangles); Main-Class stamped at install. Pure Swing, Java 8."
     },
     {
-      "id": "tic-tac-toe-server",
-      "name": "Tic-Tac-Toe (Server)",
-      "description": "Multithreaded socket server for a networked two-player tic-tac-toe game.",
+      "id": "screensaver",
+      "name": "Screen Saver",
+      "description": "A screensaver that paints a field of random colorful ellipses.",
       "source": "prebuilt",
-      "artifact": "TicTacToeServerTest.jar",
+      "artifact": "screensaver.jar",
       "javaTarget": 8,
       "cheerpjVersion": 8,
-      "display": { "w": 420, "h": 300 },
-      "thumbnail": "thumbnail.svg",
-      "webNotes": "From github.com/dylantcon/tic-tac-toe-server (NetBeans Ant, Java 8). Headless: it opens a ServerSocket and has no GUI, so the display stays blank and sockets are unavailable under CheerpJ. Wired for completeness as a portfolio entry."
+      "display": { "w": 800, "h": 600 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "Operator-supplied prebuilt jar (default-package ScreenSaver); Main-Class stamped at install. Pure Swing, Java 8."
     },
     {
-      "id": "swing-demo",
-      "name": "Bounce",
-      "description": "An interactive Swing animation - add bouncing shapes and watch them go.",
-      "source": "local",
-      "sourceDir": "apps/swing-demo/src",
-      "mainClass": "BounceDemo",
-      "artifact": "swing-demo.jar",
+      "id": "snowman",
+      "name": "Snowman",
+      "description": "A little Swing winter scene with a snowman.",
+      "source": "prebuilt",
+      "artifact": "snowman.jar",
       "javaTarget": 8,
       "cheerpjVersion": 8,
-      "display": { "w": 560, "h": 460 },
-      "thumbnail": "thumbnail.svg",
-      "webNotes": "Demo app shipped with JavaLab to exercise the gallery."
+      "display": { "w": 600, "h": 400 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "Operator-supplied prebuilt jar (default-package Snowman); Main-Class stamped at install. Pure Swing, Java 8."
     }
   ]
 }

@@ -17,16 +17,19 @@
 <!-- Each app runs in its OWN realm: this standalone page is loaded in an iframe;
      closing the iframe tears down the runtime (threads, audio, statics). -->
 <script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
-<script>
+{{SHIM}}<script>
 (async () => {
   const app = document.getElementById("app");
   const tell = (msg) => { try { parent.postMessage({ source: "javalab-app", id: "{{ID}}", ...msg }, "*"); } catch (e) {} };
   try {
-    await cheerpjInit({ version: {{VERSION}}, status: "none" });
+    // Relay apps additionally pass { natives, javaProperties } so the bundled
+    // javalabrelay transport binds the browser's WebSocket and selects the
+    // browser path (javalab.browser=true) — see generate.mjs.
+    await cheerpjInit({{INIT}});
     app.innerHTML = "";
     cheerpjCreateDisplay({{W}}, {{H}}, app);
     tell({ event: "ready" });
-    await cheerpjRunJar("/app/apps/{{ID}}/{{JAR}}");
+    {{RUN}}
     tell({ event: "exit" });
   } catch (e) {
     app.innerHTML = '<div id="status">Failed to start: ' + e + "</div>";
