@@ -19,7 +19,7 @@ await mkdir(PUBLIC, { recursive: true });
 
 // 1. Copy verbatim static assets — every top-level FILE in templates/ except the
 //    templated ones. The ide/ directory is skipped (esbuild bundles it).
-const TEMPLATED = new Set(["index.html", "app-loader.html", "run-upload.html"]);
+const TEMPLATED = new Set(["index.html", "app-loader.html", "run-upload.html", "about.html"]);
 for (const name of await readdir(TEMPLATES)) {
   if (TEMPLATED.has(name)) continue;
   const src = join(TEMPLATES, name);
@@ -61,6 +61,11 @@ await writeFile(join(PUBLIC, "index.html"), index);
 const runUpload = (await readFile(join(TEMPLATES, "run-upload.html"), "utf8"))
   .replaceAll('"/idb.js"', `"/idb.js?v=${V}"`);
 await writeFile(join(PUBLIC, "run-upload.html"), runUpload);
+
+// 4b. about.html: a static explainer page; version its styles.css link.
+const about = (await readFile(join(TEMPLATES, "about.html"), "utf8"))
+  .replaceAll("/styles.css", `/styles.css?v=${V}`);
+await writeFile(join(PUBLIC, "about.html"), about);
 
 // 5. Per-app loader page (jar path, runtime version, display size baked in).
 // Apps flagged disclaimer:true get a 98/XP modal that must be dismissed before the
