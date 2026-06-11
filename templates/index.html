@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JavaLab - Java in your browser</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/ide.bundle.css">
 <!--APPS_DATA-->
@@ -15,18 +16,32 @@
 </header>
 
 <main id="layout">
-  <!-- LEFT: curated gallery -->
-  <section id="gallery" aria-label="Curated apps">
-    <div id="gallery-grid" role="list"><!-- cards injected by gallery.js --></div>
+  <!-- LEFT: a window with two tabs — the curated Gallery and the Viewer (where
+       apps run). The Viewer is reachable any time, even with nothing running. -->
+  <section id="gallery" aria-label="Apps">
+    <div class="winbar">
+      <span class="winbar-title">Apps</span>
+      <button class="win-min" type="button" data-min="left" title="Minimize" aria-label="Minimize Apps">_</button>
+    </div>
+    <div id="left-tabs" class="tabbar" role="tablist">
+      <button class="tab is-active" data-ltab="gallery" role="tab" aria-selected="true">Gallery</button>
+      <button class="tab" data-ltab="viewer" role="tab" aria-selected="false">Viewer</button>
+    </div>
 
-    <div id="stage" hidden>
-      <div id="stage-bar">
-        <button id="stage-back" type="button">&lt;&lt; Gallery</button>
-        <span id="stage-title"></span>
-        <span class="stage-spacer"></span>
-        <button id="stage-max" type="button">Maximize</button>
+    <div class="ltab-panel is-active" data-lpanel="gallery">
+      <div id="gallery-grid" role="list"><!-- cards injected by gallery.js --></div>
+    </div>
+
+    <div class="ltab-panel" data-lpanel="viewer">
+      <div id="stage">
+        <div id="stage-bar">
+          <button id="stage-back" type="button">&lt;&lt; Gallery</button>
+          <span id="stage-title"></span>
+          <span class="stage-spacer"></span>
+          <button id="stage-max" type="button">Maximize</button>
+        </div>
+        <div id="stage-host"><!-- realm iframe goes here; empty-state is CSS ::before --></div>
       </div>
-      <div id="stage-host"><!-- per-app realm iframe goes here --></div>
     </div>
   </section>
 
@@ -34,7 +49,11 @@
 
   <!-- RIGHT: visitor sandbox -->
   <aside id="panel" aria-label="Your sandbox">
-    <div id="tabbar" role="tablist">
+    <div class="winbar">
+      <span class="winbar-title">Sandbox</span>
+      <button class="win-min" type="button" data-min="right" title="Minimize" aria-label="Minimize Sandbox">_</button>
+    </div>
+    <div id="tabbar" class="tabbar" role="tablist">
       <button class="tab is-active" data-tab="upload" role="tab" aria-selected="true">Upload &amp; run</button>
       <button class="tab" data-tab="ide" role="tab" aria-selected="false">Write Java</button>
     </div>
@@ -56,6 +75,12 @@
     </div>
   </aside>
 </main>
+
+<!-- Taskbar: a minimized column collapses to a button here (Windows-style). -->
+<footer id="taskbar">
+  <button class="task" id="restore-left" type="button" hidden>Apps</button>
+  <button class="task" id="restore-right" type="button" hidden>Sandbox</button>
+</footer>
 
 <script src="/ide.bundle.js" defer></script>
 <script src="/main.bundle.js" defer></script>
