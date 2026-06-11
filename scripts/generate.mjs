@@ -45,6 +45,7 @@ const fileHash = async (p) =>
 const clientApps = await Promise.all(apps.map(async (a) => ({
   id: a.id, name: a.name, description: a.description, display: a.display,
   thumbnail: `${a.thumbnail}?v=${await fileHash(join(APPS_OUT, a.id, a.thumbnail))}`,
+  touchKeys: a.touchKeys,
 })));
 const dataScript = `<script>window.JAVALAB_APPS=${JSON.stringify(clientApps)};</script>`;
 let index = (await readFile(join(TEMPLATES, "index.html"), "utf8"))
@@ -62,6 +63,16 @@ const runUpload = (await readFile(join(TEMPLATES, "run-upload.html"), "utf8"))
 await writeFile(join(PUBLIC, "run-upload.html"), runUpload);
 
 // 5. Per-app loader page (jar path, runtime version, display size baked in).
+// Apps flagged disclaimer:true get a 98/XP modal that must be dismissed before the
+// jar runs (CheerpJ/WASM virtualization is slower than a native JVM — say so).
+const DISCLAIMER_TEXT = "This is an experimental Java Runtime Environment that uses " +
+  "virtualization through Web Assembly. As a result, users will experience degraded " +
+  "performance unrelated to the Java application being virtualized. Thank you for understanding.";
+const disclaimerHtml = `<div id="dlg-ov"><div id="dlg" role="dialog" aria-modal="true">` +
+  `<div class="tb">JavaLab</div><div class="bd">${DISCLAIMER_TEXT}</div>` +
+  `<div class="bn"><button id="dlg-ok" autofocus>OK</button></div></div></div>\n` +
+  `<script>window.__dlgGate=new Promise(function(r){document.getElementById("dlg-ok")` +
+  `.addEventListener("click",function(){var o=document.getElementById("dlg-ov");if(o)o.remove();r();});});</script>`;
 const loaderTpl = await readFile(join(TEMPLATES, "app-loader.html"), "utf8");
 for (const app of apps) {
   const out = join(APPS_OUT, app.id);
@@ -85,7 +96,8 @@ for (const app of apps) {
     .replaceAll("{{H}}", String(app.display.h))
     .replace("{{SHIM}}", shim)
     .replace("{{INIT}}", init)
-    .replace("{{RUN}}", run);
+    .replace("{{RUN}}", run)
+    .replace("{{DISCLAIMER}}", app.disclaimer ? disclaimerHtml : "");
   await writeFile(join(out, "index.html"), page);
 }
 

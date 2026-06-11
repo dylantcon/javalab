@@ -14,6 +14,8 @@
       "cheerpjVersion": "8 | 11 | 17 — the runtime the loader inits for this app",
       "display": "{ w, h } CheerpJ display size in px",
       "relay": "optional true — app bundles the javalabrelay client; loader registers cheerpj-shim.js natives, sets javalab.browser=true, and passes --browser (pair/fetch over wss://javalab.dconn.dev/relay)",
+      "disclaimer": "optional true — show a 98/XP modal about CheerpJ/WASM performance that must be dismissed (OK) before the jar runs; for heavier games",
+      "touchKeys": "optional array of key tokens (e.g. ['w','a','s','d','q','e','Escape',' ']) — on touch devices, render an on-screen gamepad in the stage that dispatches these keys into the realm; the keyboard still works on desktop",
       "thumbnail": "image filename (relative to the app dir) copied to public/apps/<id>/",
       "webNotes": "porting caveats (see each app's WEB_NOTES.md; do not revert)"
     }
@@ -28,6 +30,8 @@
       "javaTarget": 8,
       "cheerpjVersion": 8,
       "display": { "w": 1280, "h": 720 },
+      "disclaimer": true,
+      "touchKeys": ["a", "s", "d", "q", "e", "Escape", " "],
       "thumbnail": "thumbnail.png",
       "webNotes": "From github.com/dylantcon/javarominoes (NetBeans Ant, Java 8). Jar bundles the chiptune-synth engine (chiptunesynth.*); the song classes (Korobeiniki, Wily, DuckTales Moon, Hyrule Temple, ...) live in javarominoes/model/music. MIDI playback was dropped — all music is synthesized, so audio needs the Java-8 runtime. Native 1280x720; the stage scales it to fit."
     },
@@ -41,6 +45,7 @@
       "cheerpjVersion": 8,
       "display": { "w": 800, "h": 800 },
       "relay": true,
+      "disclaimer": true,
       "thumbnail": "thumbnail.png",
       "webNotes": "From github.com/dylantcon/seas-of-yore (NetBeans Ant, Java 8). Bundles the javalabrelay client; online multiplayer (host/join a room code) runs over wss://javalab.dconn.dev/relay via the cheerpj-shim.js WebSocket natives + javalab.browser=true. Image assets live at the jar root under images/. ~6 MB jar — most of it is the title art."
     },
