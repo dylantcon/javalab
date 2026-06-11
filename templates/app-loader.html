@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Pin the viewport to the app's native display width (NOT device-width): this
+     page is a fixed W×H design surface rendered inside an iframe the stage scales
+     uniformly. device-width distorts it on mobile (the square display squished to
+     portrait, truncating content); width={{W}} keeps content 1:1 with the iframe. -->
+<meta name="viewport" content="width={{W}}">
 <title>{{NAME}} - JavaLab</title>
 <style>
   html, body { margin: 0; height: 100%; background: #06141d; color: #d6f5ef;

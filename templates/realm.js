@@ -10,6 +10,11 @@ export function launchRealm(host, url, w, h) {
   iframe.width = String(w);
   iframe.height = String(h);
   iframe.className = "realm-frame";
+  // The host is display:flex, so a flex item would SHRINK its width to the host
+  // on a narrow (mobile) viewport while keeping its height — squishing the square
+  // display into a portrait box and truncating it. flex:none pins the iframe at
+  // its native w×h; the stage's transform (fit()) does the uniform scaling.
+  iframe.style.flex = "none";
   iframe.title = "Java app runtime";
   host.appendChild(iframe);
   return iframe;
