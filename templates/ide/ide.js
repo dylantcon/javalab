@@ -7,7 +7,7 @@ import { reportBuild, clearConsole, writeLine } from "./console.js";
 import { showDiagnostics } from "./editor.js";
 import { playTransition } from "./transition.js";
 
-let ctx = null;   // bridge to Phase 1: { putJar, refreshUploads, switchToUpload, openStage }
+let ctx = null;   // bridge to Phase 1: { putJar, refreshUploads, switchToUpload, openUploadStage }
 export function setContext(c) { ctx = c; }
 
 const mainClass = () => { const m = /Main-Class:\s*(.+)/.exec(state.getFile("MANIFEST.MF") || ""); return m ? m[1].trim() : "Main"; };
@@ -42,5 +42,5 @@ export async function simulate() {
   if (!r.ok) return;
   ctx?.switchToUpload?.();
   await playTransition();
-  ctx?.openStage?.(r.jarName, "/run-upload.html?key=" + encodeURIComponent(r.jarName) + "&w=820&h=600&version=8", 820, 600);
+  ctx?.openUploadStage?.(r.jarName, r.jarName, 8);   // IDE jars are Java 8; default display size
 }

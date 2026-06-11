@@ -3,13 +3,16 @@
 // "Write Java" tab opens, handing it a bridge to the Phase 1 pieces it needs.
 import { renderGallery } from "./gallery.js";
 import { initTabs, switchTab } from "./tabs.js";
+import { initLeftTabs } from "./leftpanel.js";
 import { initUpload, refreshUploads } from "./upload.js";
-import { openStage } from "./stage.js";
+import { openUploadStage } from "./stage.js";
 import { putJar } from "./idb.js";
 
 renderGallery();
 initUpload();
+initLeftTabs();
 initSplitter();
+initMinimize();
 
 let ideReady = false;
 initTabs((name) => {
@@ -19,7 +22,7 @@ initTabs((name) => {
       putJar,
       refreshUploads,
       switchToUpload: () => switchTab("upload"),
-      openStage,
+      openUploadStage,
     });
   }
 });
@@ -39,4 +42,18 @@ function initSplitter() {
     layout.style.setProperty("--sandbox-w", w + "px");
   });
   window.addEventListener("mouseup", () => { if (dragging) { dragging = false; document.body.style.cursor = ""; } });
+}
+
+// Windows-style minimize: a column's titlebar "_" collapses it; the bottom
+// taskbar shows a button to bring it back. Either column can be minimized.
+function initMinimize() {
+  const layout = document.getElementById("layout");
+  const restore = { left: document.getElementById("restore-left"), right: document.getElementById("restore-right") };
+  const set = (side, min) => {
+    layout.classList.toggle(side + "-min", min);
+    restore[side].hidden = !min;
+  };
+  document.querySelectorAll(".win-min").forEach((b) => b.addEventListener("click", () => set(b.dataset.min, true)));
+  restore.left.addEventListener("click", () => set("left", false));
+  restore.right.addEventListener("click", () => set("right", false));
 }

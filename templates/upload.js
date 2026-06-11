@@ -1,8 +1,8 @@
 // upload.js — Tab 1: read a .jar via the File API, keep its BYTES in IndexedDB
 // (never uploaded), list/run/evict the local library. Running launches a fresh
 // realm that reads the jar back from IndexedDB. No server endpoint is involved.
-import { putJar, listJars, removeJar, setJarVersion } from "./idb.js";
-import { openStage } from "./stage.js";
+import { putJar, listJars, removeJar, setJarVersion, setJarSize, DEFAULT_DISP_W, DEFAULT_DISP_H } from "./idb.js";
+import { openUploadStage } from "./stage.js";
 import { escapeHtml, formatBytes } from "./util.js";
 import { unzipSync, strFromU8 } from "fflate";
 
@@ -77,6 +77,7 @@ export async function refreshUploads() {
 function jarCard(meta) {
   const ver = meta.version || 17;
   const opt = (v, label) => `<option value="${v}"${v === ver ? " selected" : ""}>${label}</option>`;
+  const w0 = meta.dispW || DEFAULT_DISP_W, h0 = meta.dispH || DEFAULT_DISP_H;
   const el = document.createElement("div");
   el.className = "jar-card";
   el.setAttribute("role", "listitem");
@@ -85,15 +86,34 @@ function jarCard(meta) {
     `<div class="jar-meta">${formatBytes(meta.size)}</div>` +
     `<label class="jar-rt" title="Audio (SourceDataLine) works only on Java 8">Java ` +
       `<select class="rt">${opt(8, "8 (audio)")}${opt(11, "11")}${opt(17, "17")}</select></label>` +
+    `<label class="jar-size" title="CheerpJ display size (the Java screen) — grow it if the app's window is clipped">Size ` +
+      `<input class="dw" type="number" min="240" max="3840" step="20" value="${w0}" aria-label="display width"> × ` +
+      `<input class="dh" type="number" min="180" max="2160" step="20" value="${h0}" aria-label="display height"></label>` +
     `<div class="jar-actions">` +
       `<button class="run" type="button">Run</button>` +
       `<button class="evict" type="button">Evict</button>` +
     `</div>`;
   const sel = el.querySelector(".rt");
   sel.addEventListener("change", () => setJarVersion(meta.name, Number(sel.value)));
+
+  // Adjustable CheerpJ display size, clamped and persisted per jar.
+  const dw = el.querySelector(".dw"), dh = el.querySelector(".dh");
+  const clamp = (v, lo, hi, dflt) => Math.max(lo, Math.min(hi, Math.round(Number(v) || dflt)));
+  const readSize = () => ({
+    w: clamp(dw.value, 240, 3840, DEFAULT_DISP_W),
+    h: clamp(dh.value, 180, 2160, DEFAULT_DISP_H),
+  });
+  const persistSize = () => {
+    const { w, h } = readSize();
+    dw.value = w; dh.value = h;                 // reflect the clamped values back
+    setJarSize(meta.name, w, h);
+  };
+  dw.addEventListener("change", persistSize);
+  dh.addEventListener("change", persistSize);
+
   el.querySelector(".run").addEventListener("click", () => {
-    const v = Number(sel.value);
-    openStage(meta.name, `/run-upload.html?key=${encodeURIComponent(meta.name)}&w=820&h=600&version=${v}`, 820, 600);
+    const { w, h } = readSize();
+    openUploadStage(meta.name, meta.name, Number(sel.value), w, h);
   });
   el.querySelector(".evict").addEventListener("click", async () => {
     await removeJar(meta.name);

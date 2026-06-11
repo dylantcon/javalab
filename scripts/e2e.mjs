@@ -101,8 +101,10 @@ try {
 
   // 3. launch the curated app → Swing renders (indigo panel #1a1a40)
   await page.locator(".card").first().click();
-  const stageShown = await page.evaluate(() => !document.getElementById("stage").hidden && document.querySelector("#stage-host iframe") != null);
-  check("clicking card opens the stage with a realm iframe", stageShown);
+  const stageShown = await page.evaluate(() =>
+    document.querySelector('.ltab-panel[data-lpanel="viewer"]').classList.contains("is-active")
+    && document.querySelector("#stage-host iframe") != null);
+  check("clicking card opens the Viewer tab with a realm iframe", stageShown);
   const panel = await waitForRender(page, "#stage-host", SHOT("gallery"));
   check("curated Swing app actually renders (indigo panel past the splash)", panel > 3000, `panel px=${panel}`);
 
@@ -123,10 +125,39 @@ try {
   check("Maximize fills the viewport (scaled display)", maxed);
   await page.click("#stage-max");   // restore
 
-  // 4. close tears the realm down
+  // 4. close tears the realm down and returns to the Gallery tab
   await page.locator("#stage-back").click();
-  const closed = await page.evaluate(() => document.getElementById("stage").hidden && document.querySelector("#stage-host iframe") == null && !document.getElementById("gallery-grid").hidden);
-  check("'← Gallery' removes the realm and restores the grid", closed);
+  const closed = await page.evaluate(() =>
+    document.querySelector("#stage-host iframe") == null
+    && document.querySelector('.ltab-panel[data-lpanel="gallery"]').classList.contains("is-active")
+    && !document.getElementById("stage").classList.contains("has-app"));
+  check("'<< Gallery' removes the realm and returns to the Gallery tab", closed);
+
+  // 4b. Windows-style minimize/restore for each column, via the taskbar
+  await page.click('.win-min[data-min="right"]');
+  const rightMin = await page.evaluate(() =>
+    document.getElementById("layout").classList.contains("right-min")
+    && getComputedStyle(document.getElementById("panel")).visibility === "hidden"
+    && !document.getElementById("restore-right").hidden);
+  check("minimizing the sandbox hides it + shows a taskbar button", rightMin);
+  await page.click("#restore-right");
+  const rightBack = await page.evaluate(() =>
+    !document.getElementById("layout").classList.contains("right-min")
+    && getComputedStyle(document.getElementById("panel")).visibility === "visible"
+    && document.getElementById("restore-right").hidden);
+  check("restoring the sandbox from the taskbar brings it back", rightBack);
+
+  await page.click('.win-min[data-min="left"]');
+  const leftMin = await page.evaluate(() =>
+    document.getElementById("layout").classList.contains("left-min")
+    && getComputedStyle(document.getElementById("gallery")).visibility === "hidden"
+    && !document.getElementById("restore-left").hidden);
+  check("minimizing the apps column hides it + shows a taskbar button", leftMin);
+  await page.click("#restore-left");
+  const leftBack = await page.evaluate(() =>
+    !document.getElementById("layout").classList.contains("left-min")
+    && document.getElementById("restore-left").hidden);
+  check("restoring the apps column brings it back", leftBack);
 
   // 5. upload a jar → stored + listed + runs
   await page.setInputFiles("#file-input", JAR);

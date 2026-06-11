@@ -4,6 +4,12 @@
 //   blobs : { name, bytes }         ← read only when running a jar
 const DB = "javalab", VERSION = 1, META = "meta", BLOBS = "blobs";
 
+// Default CheerpJ display (the Java "screen") for a jar, in CSS px. CheerpJ
+// treats this surface as the whole screen and CLIPS any window larger than it,
+// so this is generous; users grow it per-jar from the jar card when an app's
+// window is still truncated.
+export const DEFAULT_DISP_W = 1280, DEFAULT_DISP_H = 800;
+
 function open() {
   return new Promise((res, rej) => {
     const r = indexedDB.open(DB, VERSION);
@@ -23,7 +29,8 @@ const reqP = (req) => new Promise((res, rej) => { req.onsuccess = () => res(req.
 export async function putJar(name, arrayBuffer, version = 17) {
   const db = await open();
   const txn = db.transaction([META, BLOBS], "readwrite");
-  txn.objectStore(META).put({ name, size: arrayBuffer.byteLength, added: Date.now(), version });
+  txn.objectStore(META).put({ name, size: arrayBuffer.byteLength, added: Date.now(), version,
+                              dispW: DEFAULT_DISP_W, dispH: DEFAULT_DISP_H });
   txn.objectStore(BLOBS).put({ name, bytes: arrayBuffer });
   await done(txn);
 }
@@ -34,6 +41,17 @@ export async function setJarVersion(name, version) {
   const meta = await reqP(db.transaction(META, "readonly").objectStore(META).get(name));
   if (!meta) return;
   meta.version = version;
+  const txn = db.transaction(META, "readwrite");
+  txn.objectStore(META).put(meta);
+  await done(txn);
+}
+
+/** Update the chosen CheerpJ display size (the Java "screen") for a stored jar. */
+export async function setJarSize(name, w, h) {
+  const db = await open();
+  const meta = await reqP(db.transaction(META, "readonly").objectStore(META).get(name));
+  if (!meta) return;
+  meta.dispW = w; meta.dispH = h;
   const txn = db.transaction(META, "readwrite");
   txn.objectStore(META).put(meta);
   await done(txn);
