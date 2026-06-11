@@ -67,7 +67,7 @@ await writeFile(join(PUBLIC, "run-upload.html"), runUpload);
 // jar runs (CheerpJ/WASM virtualization is slower than a native JVM — say so).
 const DISCLAIMER_TEXT = "This is an experimental Java Runtime Environment that uses " +
   "virtualization through Web Assembly. As a result, users will experience degraded " +
-  "performance unrelated to the Java application being virtualized. Thank you for understanding.";
+  "performance unrelated to the specific Java application being virtualized. Thank you for understanding.";
 const disclaimerHtml = `<div id="dlg-ov"><div id="dlg" role="dialog" aria-modal="true">` +
   `<div class="tb">JavaLab</div><div class="bd">${DISCLAIMER_TEXT}</div>` +
   `<div class="bn"><button id="dlg-ok" autofocus>OK</button></div></div></div>\n` +
