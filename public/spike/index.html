@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaLab · jdk.compiler spike</title>
+<style>
+  :root { --bg:#0b1e2d; --panel:#06141d; --line:#1c3a4a; --fg:#d6f5ef;
+          --turq:#37c7b6; --pass:#5dff9c; --fail:#ff6b6b; }
+  html,body { margin:0; background:var(--bg); color:var(--fg);
+              font-family:"Cascadia Code",Menlo,Consolas,monospace; }
+  main { max-width:980px; margin:0 auto; padding:1.25rem; }
+  h1 { color:var(--turq); font-weight:600; letter-spacing:.5px; }
+  h1 code { color:#fff; }
+  p.lede { color:#9fc7c0; line-height:1.5; }
+  #verdict { font-size:1.35rem; margin:1.25rem 0; padding:.85rem 1rem;
+             border:1px solid var(--line); background:var(--panel); border-radius:6px; }
+  .pass { color:var(--pass); font-weight:700; }
+  .fail { color:var(--fail); font-weight:700; }
+  .run  { color:var(--turq); }
+  pre#log { white-space:pre-wrap; word-break:break-word; background:var(--panel);
+            border:1px solid var(--line); border-radius:6px; padding:1rem;
+            max-height:60vh; overflow:auto; font-size:.82rem; line-height:1.45; }
+  .nav a { color:var(--turq); margin-right:1rem; text-decoration:none; }
+  .nav a:hover { text-decoration:underline; }
+  /* CheerpJ writes Java stdout/stderr into #console; keep it present but offscreen. */
+  #console { position:absolute; left:-9999px; top:0; width:600px; }
+  #term { display:none; margin:1rem 0; }
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+</head>
+<body>
+<main>
+  <h1>JavaLab · in-browser <code>javac</code> spike</h1>
+  <p class="lede">
+    Gate for Tab&nbsp;2 (the mini-IDE). Verifies that
+    <code>ToolProvider.getSystemJavaCompiler()</code> is available under the pinned
+    CheerpJ runtime, can compile a source living in the virtual filesystem, and the
+    resulting class loads and runs &mdash; all client-side, no server.
+  </p>
+  <p class="nav">
+    Try a runtime:
+    <a href="?version=17">Java&nbsp;17</a>
+    <a href="?version=11">Java&nbsp;11</a>
+    <a href="?version=8">Java&nbsp;8</a>
+  </p>
+  <div id="verdict">Runtime: Java <span id="ver">?</span> &mdash; <span class="run">initialising&hellip;</span></div>
+  <div id="display" style="display:none; width:360px; height:240px; border:1px solid var(--line); margin:1rem 0; background:#222;"></div>
+  <pre id="console"></pre>                 <!-- CheerpJ writes Java stdout/stderr here -->
+  <div id="term"></div>                      <!-- xterm.js pane fed from #console -->
+  <pre id="log"></pre>
+</main>
+
+<script>
+  const params  = new URLSearchParams(location.search);
+  const version = parseInt(params.get("version") || "17", 10);
+  const mode    = ["ecj", "probe", "javac", "builder", "diag", "hasjavac", "loop", "guidemo", "audio", "console", "extract", "format", "runaudio"].includes(params.get("mode")) ? params.get("mode") : "system";
+  const boot    = params.get("boot") || "";   // optional -bootclasspath jar for ecj mode
+  const logEl     = document.getElementById("log");
+  const verdictEl = document.getElementById("verdict");
+  document.getElementById("ver").textContent = version;
+
+  // Headless runner reads these.
+  window.__spike = { version, done: false, result: null, lines: [] };
+
+  function append(line) {
+    window.__spike.lines.push(line);
+    logEl.textContent += line + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function setVerdict(kind, detail) {
+    window.__spike.result = kind;
+    const cls = kind === "PASS" ? "pass" : kind === "FAIL" ? "fail" : "run";
+    verdictEl.innerHTML = "Runtime: Java " + version + " &mdash; <span class=\"" + cls + "\">"
+      + (kind === "PASS" ? "SPIKE PASS ✓ — in-browser javac works"
+         : kind === "FAIL" ? "SPIKE FAIL ✗" : kind)
+      + "</span> " + (detail || "");
+  }
+
+  // CheerpJ forwards Java System.out/err to the browser console; tap it.
+  const _log = console.log.bind(console), _err = console.error.bind(console);
+  function scan(s) {
+    append(s);
+    if (s.includes("SPIKE-RESULT PASS")) setVerdict("PASS");
+    else if (s.includes("SPIKE-RESULT FAIL")) {
+      const i = s.indexOf("SPIKE-RESULT FAIL");
+      setVerdict("FAIL", s.slice(i + "SPIKE-RESULT FAIL".length));
+    }
+  }
+  console.log  = (...a) => { scan(a.join(" ")); _log(...a); };
+  console.error = (...a) => { scan(a.join(" ")); _err(...a); };
+</script>
+
+<script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
+
+<script>
+// Exit-code contract from Spike.java (the authoritative verdict channel —
+// CheerpJ does not route Java stdout through window.console).
+const CODE = { 0: ["PASS", ""],
+               2: ["FAIL", "getSystemJavaCompiler() returned null — jdk.compiler absent"],
+               3: ["FAIL", "in-browser compile failed (see console)"],
+               4: ["FAIL", "driver threw an exception (see console)"] };
+
+(async () => {
+  try {
+    append("[js] loading CheerpJ runtime (Java " + version + ", mode=" + mode
+      + (boot ? ", boot=" + boot : "") + ") …");
+    const javaProperties = boot ? ["spike.boot=" + boot] : [];
+    await cheerpjInit({ version, status: "none", javaProperties });
+    append("[js] cheerpjInit ok — running spike (" + mode + ")");
+    console.log("SPIKE-COI crossOriginIsolated=" + (typeof crossOriginIsolated !== "undefined" ? crossOriginIsolated : "n/a"));
+
+    // If the bootclasspath targets /str (CheerpJ's in-memory JS→Java mount),
+    // fetch the jar here and inject its bytes, so ECJ reads platform classes
+    // from memory rather than doing blocking ZipFile reads over the /app HTTP
+    // mount (which deadlocks the runtime thread).
+    if (boot.startsWith("/str/")) {
+      const name = boot.slice("/str/".length);
+      append("[js] fetching /spike/" + name + " for /str injection …");
+      const bytes = new Uint8Array(await (await fetch("/spike/" + name)).arrayBuffer());
+      append("[js] injecting " + bytes.length + " bytes -> " + boot);
+      cheerpOSAddStringFile(boot, bytes);
+      append("[js] /str injection done");
+    }
+    // Read the largest CheerpJ display canvas and count pixels near `target`.
+    function scanCanvas(target) {
+      const cs = document.querySelectorAll("#display canvas");
+      let best = null;
+      cs.forEach((c) => { if (!best || c.width * c.height > best.width * best.height) best = c; });
+      if (!best) return { canvases: cs.length, w: 0, h: 0, hit: 0, colors: 0, note: "no-canvas" };
+      const ctx = best.getContext("2d");
+      if (!ctx) return { canvases: cs.length, w: best.width, h: best.height, hit: 0, colors: 0, note: "no-2d-context" };
+      let img;
+      try { img = ctx.getImageData(0, 0, best.width, best.height); }
+      catch (e) { return { canvases: cs.length, w: best.width, h: best.height, hit: 0, colors: 0, note: "getImageData-failed:" + e }; }
+      const d = img.data; let hit = 0; const set = new Set();
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        if (Math.abs(r - target[0]) < 36 && Math.abs(g - target[1]) < 36 && Math.abs(b - target[2]) < 36) hit++;
+        if (i % 4000 === 0) set.add((r >> 4) + "," + (g >> 4) + "," + (b >> 4));
+      }
+      return { canvases: cs.length, w: best.width, h: best.height, hit, colors: set.size };
+    }
+
+    let code;
+    if (mode === "runaudio") {
+      // Run a PRE-BUILT Java-8 audio jar at this runtime version (no in-browser
+      // compile) to see where SourceDataLine actually works.
+      const consoleEl = document.getElementById("console");
+      if (consoleEl) consoleEl.textContent = "";
+      const rc = await cheerpjRunJar("/app/spike/soundthread.jar");
+      console.log("SPIKE-RUNAUDIO exit=" + rc);   // 0 thread+audio ok · 11 audio-fail · 10 thread-fail
+      console.log("SPIKE-RUNAUDIO-OUT " + JSON.stringify((consoleEl ? consoleEl.innerText : "").slice(0, 500)));
+      code = rc;
+    } else if (mode === "format") {
+      // De-risk google-java-format 1.7 (last Java-8-compatible) under CheerpJ:
+      // run its Main on a messy source, read the formatted result from #console.
+      const messy = "public class Input{public static void main(String[]a){int x=1;System.out.println(  x );}}\n";
+      cheerpOSAddStringFile("/str/Input.java", messy);
+      const cp = "/app/spike/gjf.jar:/app/spike/tools.jar";
+      const consoleEl = document.getElementById("console");
+      consoleEl.textContent = "";
+      const t = Date.now();
+      const rc = await cheerpjRunMain("com.google.googlejavaformat.java.Main", cp, "/str/Input.java");
+      const ms = Date.now() - t;
+      const out = consoleEl.innerText;
+      console.log("SPIKE-FORMAT rc=" + rc + " ms=" + ms);
+      console.log("SPIKE-FORMAT-OUT " + JSON.stringify(out.slice(0, 400)));
+      const ok = rc === 0 && out.includes("public class Input") && out.split("\n").length >= 4;
+      code = ok ? 0 : 14;
+    } else if (mode === "extract") {
+      // De-risk Phase 2: build a jar, lift its bytes OUT of the build realm via
+      // cjFileBlob, then prove they are a valid runnable jar by re-injecting and
+      // running them (fresh-realm run is already proven in Phase 1).
+      const proj = {
+        "/str/Main.java":
+          "package com.example;\nimport com.example.util.Greeter;\n" +
+          "public class Main { public static void main(String[] a){ System.out.println(new Greeter().greet(\"JavaLab\")); } }\n",
+        "/str/Greeter.java":
+          "package com.example.util;\npublic class Greeter { public String greet(String n){ return \"EXTRACT-RAN hello \" + n; } }\n",
+        "/str/MANIFEST.MF": "Main-Class: com.example.Main\n",
+      };
+      for (const [p, c] of Object.entries(proj)) cheerpOSAddStringFile(p, c);
+      const cp = "/app/spike/builder.jar:/app/spike/tools.jar";
+      const bc = await cheerpjRunMain("Builder", cp, "/files/eclasses", "/files/app.jar",
+        "/str/MANIFEST.MF", "/str/Main.java", "/str/Greeter.java");
+      console.log("SPIKE-EXTRACTBUILD rc=" + bc);
+      if (bc !== 0) {
+        code = 3;
+      } else {
+        let bytes = null, via = "none";
+        if (typeof cjFileBlob === "function") {
+          try {
+            const r = cjFileBlob("/files/app.jar");
+            const blob = r && typeof r.then === "function" ? await r : r;
+            bytes = new Uint8Array(await blob.arrayBuffer());
+            via = "cjFileBlob";
+          } catch (e) { console.log("SPIKE-EXTRACT cjFileBlob-threw: " + e); }
+        } else {
+          console.log("SPIKE-EXTRACT cjFileBlob-not-a-function (typeof=" + (typeof cjFileBlob) + ")");
+        }
+        if (!bytes) {
+          code = 12;   // extraction failed → base64-via-#console fallback needed
+        } else {
+          const pk = bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4B;  // "PK"
+          console.log("SPIKE-EXTRACT via=" + via + " bytes=" + bytes.length + " zipHeader=" + pk);
+          cheerpOSAddStringFile("/str/extracted.jar", bytes);
+          const rc = await cheerpjRunJar("/str/extracted.jar");
+          console.log("SPIKE-EXTRACTRUN exit=" + rc);
+          code = pk && rc === 0 ? 0 : 13;
+        }
+      }
+    } else if (mode === "console") {
+      // Prove stdout/stderr capture into a styled pane: CheerpJ writes Java
+      // console output into <pre id="console">; we mirror it live into an xterm.js
+      // terminal via a MutationObserver, and self-verify the captured text.
+      const src =
+        "public class ConsoleTest {\n" +
+        "  public static void main(String[] a){\n" +
+        "    System.out.println(\"CONSOLE-OUT-1 hello\");\n" +
+        "    System.err.println(\"CONSOLE-ERR-1 warning\");\n" +
+        "    System.out.println(\"CONSOLE-OUT-2 world\");\n" +
+        "    System.out.print(\"CONSOLE-PARTIAL\"); System.out.println(\" done\");\n" +
+        "  }\n}\n";
+      cheerpOSAddStringFile("/str/ConsoleTest.java", src);
+      cheerpOSAddStringFile("/str/CONSOLEMANIFEST.MF", "Main-Class: ConsoleTest\n");
+      const cp = "/app/spike/builder.jar:/app/spike/tools.jar";
+      const bc = await cheerpjRunMain("Builder", cp, "/files/cclasses", "/files/console.jar",
+        "/str/CONSOLEMANIFEST.MF", "/str/ConsoleTest.java");
+      console.log("SPIKE-CONSOLEBUILD rc=" + bc);
+      if (bc !== 0) {
+        code = 3;
+      } else {
+        const consoleEl = document.getElementById("console");
+        const termDiv = document.getElementById("term");
+        termDiv.style.display = "block";
+        consoleEl.textContent = "";
+        const term = new Terminal({ convertEol: true, rows: 12, fontSize: 13,
+          theme: { background: "#06141d", foreground: "#d6f5ef" } });
+        term.open(termDiv);
+        let lastLen = 0;
+        const pump = () => {
+          const txt = consoleEl.innerText;
+          if (txt.length > lastLen) { term.write(txt.slice(lastLen)); lastLen = txt.length; }
+        };
+        const obs = new MutationObserver(pump);
+        obs.observe(consoleEl, { childList: true, subtree: true, characterData: true });
+        const rc = await cheerpjRunJar("/files/console.jar");
+        console.log("SPIKE-CONSOLERUN exit=" + rc);
+        await new Promise((r) => setTimeout(r, 1500));   // let CheerpJ flush + observer fire
+        pump();
+        obs.disconnect();
+        const captured = consoleEl.innerText;
+        console.log("SPIKE-CONSOLE captured=" + JSON.stringify(captured));
+        const need = ["CONSOLE-OUT-1 hello", "CONSOLE-OUT-2 world", "CONSOLE-PARTIAL done"];
+        const stdoutOk = need.every((s) => captured.indexOf(s) >= 0);
+        const stderrPresent = captured.indexOf("CONSOLE-ERR-1 warning") >= 0;
+        console.log("SPIKE-CONSOLE stdout-ok=" + stdoutOk + " stderr-present=" + stderrPresent
+          + " termRows=" + term.rows);
+        code = stdoutOk ? 0 : 12;
+      }
+    } else if (mode === "audio") {
+      // Compile in-browser a program that (1) spawns a daemon thread and verifies
+      // it actually ran (concurrency), and (2) opens a SourceDataLine and writes a
+      // 440 Hz tone (Javarominoes' synth path). Headless has no speakers, so the
+      // proof is that the audio pipeline INITIALISES without LineUnavailableException.
+      const src =
+        "import javax.sound.sampled.*;\n" +
+        "public class SoundThread {\n" +
+        "  static volatile boolean threadRan = false;\n" +
+        "  public static void main(String[] a) throws Exception {\n" +
+        "    Thread t = new Thread(() -> {\n" +
+        "      long x=0; for (int i=0;i<2000000;i++) x+=i;\n" +
+        "      threadRan = (x!=0);\n" +
+        "      System.out.println(\"THREAD-RAN name=\"+Thread.currentThread().getName()+\" sum=\"+x);\n" +
+        "    }, \"synth-daemon\");\n" +
+        "    t.setDaemon(true); t.start(); t.join(8000);\n" +
+        "    System.out.println(\"THREAD-RESULT ran=\"+threadRan+\" alive=\"+t.isAlive());\n" +
+        "    boolean audioOk=false;\n" +
+        "    try {\n" +
+        "      AudioFormat fmt = new AudioFormat(44100f,16,1,true,false);\n" +
+        "      DataLine.Info info = new DataLine.Info(SourceDataLine.class, fmt);\n" +
+        "      System.out.println(\"AUDIO-SUPPORTED \"+AudioSystem.isLineSupported(info));\n" +
+        "      SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info);\n" +
+        "      line.open(fmt, 8192); line.start();\n" +
+        "      System.out.println(\"AUDIO-OPEN ok buf=\"+line.getBufferSize());\n" +
+        "      byte[] buf = new byte[8820];\n" +
+        "      for (int i=0;i<4410;i++){ short v=(short)(Math.sin(2*Math.PI*440*i/44100.0)*30000); buf[i*2]=(byte)v; buf[i*2+1]=(byte)(v>>8); }\n" +
+        "      int w = line.write(buf,0,buf.length);\n" +
+        "      line.stop(); line.close();\n" +
+        "      System.out.println(\"AUDIO-WROTE \"+w); audioOk=true;\n" +
+        "      System.out.println(\"AUDIO-RESULT ok\");\n" +
+        "    } catch (Throwable e) { System.out.println(\"AUDIO-RESULT fail:\"+e); }\n" +
+        "    System.out.println(\"AUDIO-END thread=\"+threadRan+\" audio=\"+audioOk);\n" +
+        "    System.exit((threadRan&&audioOk)?0:(threadRan?11:10));\n" +
+        "  }\n}\n";
+      cheerpOSAddStringFile("/str/SoundThread.java", src);
+      cheerpOSAddStringFile("/str/AUDIOMANIFEST.MF", "Main-Class: SoundThread\n");
+      const cp = "/app/spike/builder.jar:/app/spike/tools.jar";
+      const bc = await cheerpjRunMain("Builder", cp, "/files/aclasses", "/files/audio.jar",
+        "/str/AUDIOMANIFEST.MF", "/str/SoundThread.java");
+      console.log("SPIKE-AUDIOBUILD rc=" + bc);
+      if (bc !== 0) {
+        code = 3;
+      } else {
+        const rc = await cheerpjRunJar("/files/audio.jar");
+        console.log("SPIKE-AUDIORUN exit=" + rc);   // 0 both ok · 10 thread-fail · 11 audio-fail
+        code = rc;
+      }
+    } else if (mode === "guidemo") {
+      // Compile a Swing app IN-BROWSER, render it via cheerpjCreateDisplay, and
+      // verify real pixels: the panel is filled with a distinctive crimson the
+      // page then detects on the display canvas. Proves the GUI path both tabs
+      // (IDE + curated gallery) depend on.
+      const gui =
+        "import javax.swing.*;\n" +
+        "import java.awt.*;\n" +
+        "public class GuiMain {\n" +
+        "  public static void main(String[] a) throws Exception {\n" +
+        "    JFrame f = new JFrame(\"JavaLab\");\n" +
+        "    JPanel p = new JPanel(new FlowLayout());\n" +
+        "    p.setBackground(new Color(220,20,60));\n" +              // distinctive crimson
+        "    p.setPreferredSize(new Dimension(320,200));\n" +
+        "    JLabel l = new JLabel(\"GUI-OK\");\n" +
+        "    l.setForeground(Color.WHITE); l.setFont(l.getFont().deriveFont(28f));\n" +
+        "    p.add(l); p.add(new JButton(\"Click me\"));\n" +
+        "    f.setContentPane(p); f.pack(); f.setVisible(true);\n" +
+        "    System.out.println(\"GUI-RENDERED\");\n" +
+        "  }\n}\n";
+      cheerpOSAddStringFile("/str/GuiMain.java", gui);
+      cheerpOSAddStringFile("/str/GUIMANIFEST.MF", "Main-Class: GuiMain\n");
+      const cp = "/app/spike/builder.jar:/app/spike/tools.jar";
+      const bc = await cheerpjRunMain("Builder", cp, "/files/gclasses", "/files/gui.jar",
+        "/str/GUIMANIFEST.MF", "/str/GuiMain.java");
+      console.log("SPIKE-GUIBUILD rc=" + bc);
+      if (bc !== 0) {
+        code = 3;
+      } else {
+        const disp = document.getElementById("display");
+        disp.style.display = "block";
+        cheerpjCreateDisplay(360, 240, disp);
+        append("[js] display created; launching GUI jar (fire-and-forget)");
+        cheerpjRunJar("/files/gui.jar");   // GUI keeps running — do NOT await
+        await new Promise((r) => setTimeout(r, 2000));   // let the GUI start; runner polls screenshots
+        // Diagnostic only: CheerpJ's display canvas is NOT readable via in-page
+        // getImageData — the authoritative verdict is the runner's screenshot.
+        const stats = scanCanvas([220, 20, 60]);
+        console.log("SPIKE-GUI canvases=" + stats.canvases + " size=" + stats.w + "x" + stats.h
+          + " inPageReadback=" + stats.hit + (stats.note ? " note=" + stats.note : ""));
+        window.__spike.guiStats = stats;
+        code = 0;   // runner overrides the guidemo verdict from the screenshot
+      }
+    } else if (mode === "loop") {
+      // The real IDE "simulate" loop, in ONE persistent realm: build → run →
+      // edit → rebuild → run, repeatedly, reusing the SAME /files/app.jar path
+      // and SAME class name. Verifies (a) javac stays warm across builds, and
+      // (b) each rerun reflects the EDITED code (no stale class/jar caching).
+      const cp = "/app/spike/builder.jar:/app/spike/tools.jar";
+      const rewriteStr = (path, content) => {
+        try { if (typeof cheerpOSRemoveStringFile === "function") cheerpOSRemoveStringFile(path); } catch (e) {}
+        cheerpOSAddStringFile(path, content);
+      };
+      const greeter =
+        "package com.example.util;\n" +
+        "public class Greeter { public String greet(String s){ return \"LOOP-OUT \" + s; } }\n";
+      const mainSrc = (expr) =>
+        "package com.example;\n" +
+        "import com.example.util.Greeter;\n" +
+        "public class Main { public static void main(String[] a){\n" +
+        "  System.out.println(new Greeter().greet(" + expr + "));\n" +
+        "} }\n";
+      // [tag, value-expression, expectCompileOk, expectedOutputSubstring]
+      const iters = [
+        ["iter1",        '"v1"',                   true,  "LOOP-OUT v1"],
+        ["iter2-edited", 'Integer.toString(6*7)',  true,  "LOOP-OUT 42"],   // edit must take effect
+        ["iter3-broken", 'noSuchVar',              false, null],            // compile error
+        ["iter4-fixed",  '"recovered"',            true,  "LOOP-OUT recovered"],
+      ];
+      const outDir = "/files/classes", jar = "/files/app.jar";  // REUSED paths (realistic)
+      let pass = true;
+      for (let i = 0; i < iters.length; i++) {
+        const [tag, expr, expectOk, expectOut] = iters[i];
+        rewriteStr("/str/Main.java", mainSrc(expr));
+        rewriteStr("/str/Greeter.java", greeter);
+        rewriteStr("/str/MANIFEST.MF", "Main-Class: com.example.Main\n");
+        const t = Date.now();
+        const bc = await cheerpjRunMain("Builder", cp, outDir, jar,
+          "/str/MANIFEST.MF", "/str/Main.java", "/str/Greeter.java");
+        console.log("LOOP-BUILD " + tag + " rc=" + bc + " ms=" + (Date.now() - t) + " expectOk=" + expectOk);
+        if (expectOk) {
+          if (bc !== 0) { console.log("LOOP-FAIL " + tag + " unexpected-compile-failure"); pass = false; continue; }
+          // Emit the expected string right before running so the transcript
+          // shows it adjacent to the jar's actual LOOP-OUT line (the runner
+          // verifies the pairing; the page can't see Java stdout itself).
+          console.log("LOOP-EXPECT " + tag + " " + expectOut);
+          const rc = await cheerpjRunJar(jar);
+          console.log("LOOP-RUN " + tag + " rc=" + rc);
+        } else {
+          if (bc === 0) { console.log("LOOP-FAIL " + tag + " expected-compile-error-but-ok"); pass = false; }
+          else console.log("LOOP-OK " + tag + " compile-error-as-expected");
+        }
+      }
+      console.log("LOOP-SUMMARY pass=" + pass);
+      code = pass ? 0 : 8;   // NB: build-rc verdict only; output-match checked by the runner
+    } else if (mode === "builder") {
+      // Full §6 pipeline: a multi-file, multi-package project compiled + packaged
+      // into a runnable jar by Builder.java (in-process javac + java.util.jar),
+      // then executed from /files. Exercises packages, cross-package refs, a
+      // Java-8 stream, MANIFEST.MF handling, and running a built jar.
+      const proj = {
+        // Flat /str paths (no dir trees); packages live in the file content.
+        "/str/Main.java":
+          "package com.example;\n" +
+          "import com.example.util.Greeter;\n" +
+          "import java.util.stream.*;\n" +
+          "public class Main {\n" +
+          "  public static void main(String[] args){\n" +
+          "    String who = Stream.of(\"Java\",\"Lab\").collect(Collectors.joining(\"\"));\n" +
+          "    System.out.println(new Greeter().greet(who));\n" +
+          "  }\n}\n",
+        "/str/Greeter.java":
+          "package com.example.util;\n" +
+          "public class Greeter {\n" +
+          "  public String greet(String n){ return \"BUILDER-RAN hello \" + n; }\n" +
+          "}\n",
+        "/str/MANIFEST.MF": "Main-Class: com.example.Main\n",
+      };
+      for (const [path, content] of Object.entries(proj)) cheerpOSAddStringFile(path, content);
+      append("[js] wrote " + Object.keys(proj).length + " files to /str");
+      const buildCp = "/app/spike/builder.jar:/app/spike/tools.jar";
+      const t = Date.now();
+      const bc = await cheerpjRunMain("Builder", buildCp,
+        "/files/classes", "/files/app.jar", "/str/MANIFEST.MF",
+        "/str/Main.java", "/str/Greeter.java");
+      console.log("SPIKE-BUILDER exit=" + bc + " ms=" + (Date.now() - t));
+      if (bc === 0) {
+        const rc = await cheerpjRunJar("/files/app.jar");   // run the BUILT jar
+        console.log("SPIKE-RUNJAR exit=" + rc);
+        code = rc === 0 ? 0 : 5;
+      } else {
+        code = 3;
+      }
+    } else if (mode === "javac") {
+      // JavaFiddle's proven recipe: the REAL javac (com.sun.tools.javac.Main)
+      // from a bundled tools.jar, sources in the in-memory /str mount, classes
+      // out to writable /files. javac uses the JVM's own platform classes (fast
+      // native path) — no rt.jar ZipFile reads, so no deadlock.
+      const src =
+        "public class HelloSpike {\n" +
+        "  public static void main(String[] a){\n" +
+        "    System.out.println(\"HELLO-FROM-IN-BROWSER-COMPILED-CLASS\");\n" +
+        "  }\n}\n";
+      cheerpOSAddStringFile("/str/HelloSpike.java", src);
+      append("[js] wrote /str/HelloSpike.java; invoking com.sun.tools.javac.Main …");
+      const cp = "/app/spike/tools.jar:/files/";
+      const t = Date.now();
+      const cc = await cheerpjRunMain("com.sun.tools.javac.Main", cp,
+        "/str/HelloSpike.java", "-d", "/files/", "-Xlint");
+      console.log("SPIKE-JAVAC exit=" + cc + " ms=" + (Date.now() - t));
+      if (cc === 0) {
+        const rc = await cheerpjRunMain("HelloSpike", cp);
+        console.log("SPIKE-RUN exit=" + rc);
+        // Warm recompile in the same realm — representative of a real IDE
+        // session where the runtime + javac stay loaded between "Save" clicks.
+        cheerpOSAddStringFile("/str/HelloSpike2.java",
+          "public class HelloSpike2 { public static void main(String[] a){ System.out.println(\"warm\"); } }\n");
+        const t2 = Date.now();
+        const cc2 = await cheerpjRunMain("com.sun.tools.javac.Main", cp,
+          "/str/HelloSpike2.java", "-d", "/files/", "-Xlint");
+        console.log("SPIKE-JAVAC2 exit=" + cc2 + " ms=" + (Date.now() - t2) + " (warm)");
+        code = rc === 0 ? 0 : 5;
+      } else {
+        code = 3;   // compile failed
+      }
+    } else if (mode === "diag") {
+      // Verify compile-error diagnostics come back in javac's parseable format
+      // (/str/X.java:line: error: msg) — what JavaFiddle's linter.ts consumes.
+      const bad =
+        "public class Bad {\n" +
+        "  public static void main(String[] a){\n" +
+        "    int x = \"not an int\";\n" +
+        "    System.out.println(x);\n" +
+        "  }\n}\n";
+      cheerpOSAddStringFile("/str/Bad.java", bad);
+      const cp = "/app/spike/tools.jar:/files/";
+      const bc = await cheerpjRunMain("com.sun.tools.javac.Main", cp, "/str/Bad.java", "-d", "/files/");
+      console.log("SPIKE-DIAG-EXIT " + bc);   // EXPECT nonzero (compile error)
+      code = bc !== 0 ? 0 : 6;                 // PASS = javac correctly reported the error
+    } else if (mode === "hasjavac") {
+      // Is com.sun.tools.javac.Main runnable on this runtime? With ?tools=0 there
+      // is no bundled tools.jar, so this tests the runtime's OWN compiler classes
+      // (relevant for a Java 11/17 IDE that wouldn't ship a Java-8 tools.jar).
+      const useTools = params.get("tools") !== "0";
+      const cp = useTools ? "/app/spike/tools.jar:/files/" : "/files/";
+      append("[js] hasjavac cp=" + cp);
+      try {
+        const bc = await cheerpjRunMain("com.sun.tools.javac.Main", cp, "-version");
+        console.log("SPIKE-HASJAVAC exit=" + bc + " cp=" + cp);
+        code = bc === 0 ? 0 : 7;
+      } catch (e) {
+        console.log("SPIKE-HASJAVAC ERROR " + e);
+        code = 7;
+      }
+    } else if (mode === "ecj") {
+      // Bundled-compiler path: SpikeEcj + ecj on the classpath.
+      code = await cheerpjRunMain("SpikeEcj",
+        "/app/spike/spike-ecj.jar:/app/spike/ecj-3.26.0.jar");
+    } else if (mode === "probe") {
+      // Diagnostic: inspect platform-class resources in the VFS.
+      code = await cheerpjRunJar("/app/spike/probe.jar");
+    } else {
+      // System-compiler path: ToolProvider.getSystemJavaCompiler().
+      code = await cheerpjRunJar("/app/spike/spike.jar");
+    }
+    window.__spike.exitCode = code;
+    console.log("SPIKE-EXIT " + code);   // machine-readable marker for the headless runner
+    append("[js] spike exited with code " + code);
+    const [kind, detail] = CODE[code] || ["FAIL", "(unexpected exit code " + code + ")"];
+    setVerdict(kind, detail);
+  } catch (e) {
+    append("[js] ERROR " + (e && e.stack ? e.stack : e));
+    setVerdict("FAIL", "(JS/runtime error: " + e + ")");
+  } finally {
+    window.__spike.done = true;
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JavaLab build realm</title>
+<style> body { margin: 0; background: #06141d; } #console { position: absolute; left: -9999px; top: 0; width: 800px; } </style>
+</head>
+<body>
+<!-- Hidden, warm Java 8 realm: compiles the IDE's sources with the real javac
+     (via builder.jar + tools.jar), captures diagnostics from #console, and hands
+     the built jar's bytes back to the IDE for storage + a fresh-realm run. -->
+<pre id="console"></pre>
+
+<script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
+<script>
+const CP = "/app/builder/builder.jar:/app/builder/tools.jar";
+const consoleEl = document.getElementById("console");
+const tell = (msg, transfer) => parent.postMessage({ source: "javalab-build", ...msg }, "*", transfer || []);
+
+(async () => {
+  try {
+    await cheerpjInit({ version: 8, status: "none" });
+    tell({ event: "ready" });
+  } catch (e) {
+    tell({ event: "error", message: "init failed: " + e });
+  }
+})();
+
+const GJF_CP = "/app/builder/gjf.jar:/app/builder/tools.jar";
+
+window.addEventListener("message", (e) => {
+  const m = e.data;
+  if (!m || m.source !== "javalab-ide") return;
+  if (m.type === "build") doBuild(m);
+  else if (m.type === "format") doFormat(m);
+});
+
+async function doFormat(m) {
+  try {
+    const path = "/str/" + m.name;
+    try { if (typeof cheerpOSRemoveStringFile === "function") cheerpOSRemoveStringFile(path); } catch (e) {}
+    cheerpOSAddStringFile(path, m.content);
+    consoleEl.textContent = "";
+    // google-java-format's Main prints the formatted source to stdout → #console
+    const rc = await cheerpjRunMain("com.google.googlejavaformat.java.Main", GJF_CP, path);
+    tell({ event: "format-result", id: m.id, ok: rc === 0, formatted: rc === 0 ? consoleEl.innerText : null });
+  } catch (err) {
+    tell({ event: "format-result", id: m.id, ok: false, formatted: null });
+  }
+}
+
+async function doBuild(m) {
+  try {
+    const sources = [];
+    for (const f of m.files) {
+      try { if (typeof cheerpOSRemoveStringFile === "function") cheerpOSRemoveStringFile("/str/" + f.name); } catch (e) {}
+      cheerpOSAddStringFile("/str/" + f.name, f.content);
+      if (f.name.endsWith(".java")) sources.push("/str/" + f.name);
+    }
+    try { if (typeof cheerpOSRemoveStringFile === "function") cheerpOSRemoveStringFile("/str/MANIFEST.MF"); } catch (e) {}
+    cheerpOSAddStringFile("/str/MANIFEST.MF", m.manifest || "Main-Class: Main\n");
+    consoleEl.textContent = "";
+    const rc = await cheerpjRunMain("Builder", CP,
+      "/files/classes", "/files/sim.jar", "/str/MANIFEST.MF", ...sources);
+    const diagnostics = consoleEl.innerText;
+    let jarBytes = null;
+    if (rc === 0 && typeof cjFileBlob === "function") {
+      try {
+        const b = cjFileBlob("/files/sim.jar");
+        const blob = b && typeof b.then === "function" ? await b : b;
+        jarBytes = await blob.arrayBuffer();
+      } catch (err) { /* fall through → ok:false */ }
+    }
+    tell({ event: "build-result", id: m.id, ok: rc === 0 && !!jarBytes, rc, diagnostics, jarBytes },
+      jarBytes ? [jarBytes] : []);
+  } catch (err) {
+    tell({ event: "build-result", id: m.id, ok: false, rc: -1, diagnostics: String(err), jarBytes: null });
+  }
+}
+</script>
+</body>
+</html>

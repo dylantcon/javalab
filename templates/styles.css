@@ -1,0 +1,238 @@
+/* JavaLab — 1990s/2000s retro: Windows-9x / Java-Metal / NetBeans-1.0 chrome.
+   Gray beveled panels, square corners, indigo/teal title bars, the "Jazz"
+   turquoise/indigo accents. No rounded corners, no soft shadows, no unicode. */
+:root {
+  --desktop:  #0d6b6b;   /* classic teal desktop */
+  --face:     #c3c7cb;   /* window/face gray */
+  --face-2:   #b0b4b9;
+  --hi:       #ffffff;   /* bevel highlights */
+  --light:    #dfdfdf;
+  --lo:       #87898c;   /* bevel shadows */
+  --dk:       #000000;
+  --ink:      #0a0a0a;   /* text */
+  --navy:     #1a1a40;   /* title bar (indigo) */
+  --teal:     #008c8c;
+  --turq:     #1c7c72;
+  --sel:      #1a1a40;   /* selection navy */
+  --field:    #ffffff;   /* sunken field bg */
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--desktop);
+  color: var(--ink);
+  font-family: Tahoma, "Geneva", "MS Sans Serif", Verdana, sans-serif;
+  font-size: 12px;
+  display: flex; flex-direction: column;
+  /* de-polish: ask the browser to skip text anti-aliasing for a crunchier,
+     period-accurate look. NOTE: -webkit-font-smoothing only bites on
+     WebKit/macOS; on Linux/Windows the OS renders TrueType outlines with AA
+     regardless of CSS, so truly aliased chrome there requires a bitmap pixel
+     font (e.g. a self-hosted "MS Sans Serif"-style .woff). Not bundled yet. */
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  text-rendering: optimizeSpeed;
+}
+
+/* --- bevel helpers (Win9x) --- */
+.up   { box-shadow: inset -1px -1px var(--dk), inset 1px 1px var(--hi), inset -2px -2px var(--lo), inset 2px 2px var(--light); }
+.down { box-shadow: inset 1px 1px var(--dk), inset -1px -1px var(--hi), inset 2px 2px var(--lo), inset -2px -2px var(--light); }
+
+/* --- title bar (top) --- */
+#topbar {
+  background: var(--face); border-bottom: 1px solid var(--dk); padding: 2px;
+}
+#topbar h1 {
+  margin: 0; font-size: 13px; font-weight: bold; letter-spacing: 0; color: var(--hi);
+  background: linear-gradient(90deg, var(--navy), var(--teal));
+  padding: 3px 6px; border: 1px solid var(--dk);
+  display: flex; align-items: center;
+}
+#topbar h1 span { color: var(--turq, #5fe9d6); }
+/* MS-Explorer-style hyperlink to the parent site, pinned to the right of the bar. */
+#topbar h1 .up-link {
+  margin-left: auto; font-weight: normal; font-size: 11px;
+  color: #fff; text-decoration: underline; cursor: pointer;
+}
+#topbar h1 .up-link:hover { color: #aef3ea; }
+.tagline { margin: 3px 4px 1px; color: #15302f; font-size: 11px; }
+
+/* --- two-column layout --- */
+#layout {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: minmax(120px, 1fr) 6px var(--sandbox-w, 620px); gap: 0;
+  padding: 6px;
+}
+#hsplit { cursor: ew-resize; background: var(--desktop);
+  box-shadow: inset -1px 0 var(--lo), inset 1px 0 var(--hi); }
+#hsplit:hover { background: #0a5a5a; }
+#gallery, #panel { margin: 0 3px; }
+@media (max-width: 900px) { #layout { grid-template-columns: 1fr; } #hsplit { display: none; } }
+
+/* a "window" panel: gray face, raised bevel, square */
+#gallery, #panel {
+  background: var(--face); border: 1px solid var(--dk);
+  box-shadow: inset -1px -1px var(--lo), inset 1px 1px var(--hi);
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  position: relative;
+}
+
+/* --- window titlebar (per column), with a Win9x minimize button --- */
+.winbar {
+  display: flex; align-items: center; gap: 6px; margin: 2px; padding: 2px 3px 2px 6px;
+  color: var(--hi); font-weight: bold; font-size: 11px;
+  background: linear-gradient(90deg, var(--navy), var(--teal)); border: 1px solid var(--dk);
+}
+.winbar-title { flex: 1; }
+.win-min {
+  font: inherit; font-size: 11px; line-height: 9px; cursor: pointer; color: var(--ink);
+  min-width: 18px; height: 16px; padding: 0 0 4px; background: var(--face);
+  border: 1px solid; border-color: var(--hi) var(--dk) var(--dk) var(--hi);
+  box-shadow: inset -1px -1px var(--lo), inset 1px 1px var(--light);
+}
+.win-min:active { border-color: var(--dk) var(--hi) var(--hi) var(--dk); box-shadow: inset 1px 1px var(--lo); }
+
+#gallery-grid {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+  align-content: start; padding: 6px; margin: 2px;
+  background: var(--face-2);
+  box-shadow: inset 1px 1px var(--lo), inset -1px -1px var(--hi);   /* sunken */
+}
+@media (max-width: 1200px) { #gallery-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 980px)  { #gallery-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--face); color: var(--ink); font: inherit;
+  border: 1px solid; border-color: var(--hi) var(--dk) var(--dk) var(--hi);
+  box-shadow: inset -1px -1px var(--lo), inset 1px 1px var(--light);
+  padding: 5px 4px; cursor: pointer;
+}
+.card:active { border-color: var(--dk) var(--hi) var(--hi) var(--dk); box-shadow: inset 1px 1px var(--lo); }
+.card:focus-visible { outline: 1px dotted var(--dk); outline-offset: -3px; }
+.card-thumb {
+  width: 100%; aspect-ratio: 1; object-fit: cover; image-rendering: pixelated;
+  border: 1px solid; border-color: var(--lo) var(--hi) var(--hi) var(--lo); background: var(--navy);
+}
+.card-label { font-size: 11px; text-align: center; color: var(--ink); }
+
+/* --- stage (a launched app), lives inside the Viewer tab --- */
+#stage { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--face); }
+#stage.is-max { position: fixed; inset: 0; z-index: 1000; margin: 0; }
+#stage:not(.has-app) #stage-bar { display: none; }   /* bar only when something runs */
+#stage:not(.has-app) #stage-host::before {
+  content: "Nothing running. Pick an app from the Gallery tab, or open \"Add a Jar\" and press Run.";
+  max-width: 70%; color: #15302f; font-size: 11px; line-height: 1.5; text-align: center;
+}
+#stage-bar {
+  display: flex; align-items: center; gap: 6px; padding: 2px 4px; margin: 2px;
+  color: var(--hi); background: linear-gradient(90deg, var(--navy), var(--teal)); border: 1px solid var(--dk);
+}
+#stage-title { font-weight: bold; font-size: 11px; }
+.stage-spacer { flex: 1; }
+#stage-back, #stage-max {
+  background: var(--face); color: var(--ink); font: inherit; font-size: 11px; cursor: pointer;
+  border: 1px solid; border-color: var(--hi) var(--dk) var(--dk) var(--hi);
+  box-shadow: inset -1px -1px var(--lo), inset 1px 1px var(--light); padding: 1px 8px;
+}
+#stage-back:active, #stage-max:active { border-color: var(--dk) var(--hi) var(--hi) var(--dk); box-shadow: inset 1px 1px var(--lo); }
+#stage-host { flex: 1; display: flex; align-items: center; justify-content: center; padding: 6px; margin: 2px;
+  overflow: hidden; background: var(--face-2); box-shadow: inset 1px 1px var(--lo), inset -1px -1px var(--hi); }
+#stage.is-max #stage-host { background: #06141d; margin: 0; box-shadow: none; }
+.realm-frame { border: 1px solid var(--dk); background: #222; }
+
+/* --- classic tabs, shared by both columns (Gallery|Viewer and Upload|Write) --- */
+.tabbar { display: flex; gap: 2px; padding: 3px 3px 0; align-items: flex-end; }
+.tab {
+  font: inherit; font-size: 11px; color: var(--ink); cursor: pointer;
+  background: var(--face-2); padding: 2px 12px 4px;
+  border: 1px solid; border-color: var(--hi) var(--dk) var(--face) var(--hi);
+  border-bottom: none; position: relative;
+}
+/* Selected tab: raised (taller) AND merged with its panel — its face-colored body
+   overlaps the panel's top border (margin-bottom:-1px + z-index:2), so there is NO
+   line between the tab and its div. */
+.tab.is-active { font-weight: bold; background: var(--face); z-index: 2;
+  padding-top: 4px; margin-bottom: -1px; }
+/* Unselected tabs sit lower (recessed); the panel's top border reads across them. */
+.tab:not(.is-active) { background: var(--face-2); }
+.tab-panel, .ltab-panel { display: none; flex: 1; min-height: 0; flex-direction: column;
+  border: 1px solid var(--dk); margin: 0 3px 3px; box-shadow: inset 1px 1px var(--hi); background: var(--face); }
+.tab-panel.is-active, .ltab-panel.is-active { display: flex; }
+#ide-mount { flex: 1; min-height: 0; display: flex; }
+#ide-mount > #ide { flex: 1; }
+
+/* upload tab */
+#upload-controls { flex: 0 0 30%; padding: 8px; border-bottom: 1px solid var(--lo); }
+.filepick {
+  display: block; text-align: center; cursor: pointer; color: #222; padding: 14px 8px; background: var(--field);
+  border: 1px solid; border-color: var(--lo) var(--hi) var(--hi) var(--lo);
+  box-shadow: inset 1px 1px var(--lo);
+}
+.filepick.dragover { background: #eef; outline: 1px dotted var(--navy); outline-offset: -3px; }
+.filepick code { font-family: "Courier New", monospace; color: var(--navy); font-weight: bold; }
+#storage-usage { margin-top: 6px; font-size: 11px; color: #15302f; }
+.boundary-note { margin: 5px 0 0; font-size: 10px; color: #333; line-height: 1.4; }
+
+#upload-list {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; align-content: start; padding: 8px;
+  background: var(--face-2); box-shadow: inset 1px 1px var(--lo);
+}
+.jar-card {
+  background: var(--face); padding: 5px; display: flex; flex-direction: column; gap: 4px;
+  border: 1px solid; border-color: var(--hi) var(--dk) var(--dk) var(--hi); box-shadow: inset -1px -1px var(--lo);
+}
+.jar-name { font-size: 11px; color: var(--ink); word-break: break-all; font-family: "Courier New", monospace; }
+.jar-meta { font-size: 10px; color: #444; }
+.jar-rt { font-size: 10px; color: #444; display: flex; align-items: center; gap: 4px; }
+.jar-rt select {
+  font: inherit; font-size: 10px; padding: 1px; background: #fff; color: var(--ink);
+  border: 1px solid; border-color: var(--dk) var(--hi) var(--hi) var(--dk);
+}
+.jar-size { font-size: 10px; color: #444; display: flex; align-items: center; gap: 4px; }
+.jar-size input {
+  font: inherit; font-size: 10px; padding: 1px; width: 46px; background: #fff; color: var(--ink);
+  border: 1px solid; border-color: var(--dk) var(--hi) var(--hi) var(--dk);
+}
+.jar-actions { display: flex; gap: 4px; }
+.jar-actions button {
+  flex: 1; font: inherit; font-size: 10px; cursor: pointer; padding: 2px; background: var(--face); color: var(--ink);
+  border: 1px solid; border-color: var(--hi) var(--dk) var(--dk) var(--hi); box-shadow: inset -1px -1px var(--lo);
+}
+.jar-actions button:active { border-color: var(--dk) var(--hi) var(--hi) var(--dk); box-shadow: inset 1px 1px var(--lo); }
+.upload-empty { grid-column: 1 / -1; color: #15302f; font-size: 11px; text-align: center; padding: 16px; }
+
+.coming-soon { padding: 16px; color: #222; }
+.coming-soon strong { color: var(--navy); display: block; margin-bottom: 4px; font-size: 12px; }
+
+/* --- taskbar: restore a minimized column (Windows-style) --- */
+#taskbar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 4px;
+  padding: 3px 4px; background: var(--face);
+  border-top: 1px solid var(--hi); box-shadow: inset 0 1px var(--light);
+}
+#taskbar::before { content: "JavaLab"; font-weight: bold; font-size: 11px; color: #15302f; padding: 0 10px 0 4px; }
+.task {
+  font: inherit; font-size: 11px; cursor: pointer; color: var(--ink); text-align: left; min-width: 130px;
+  padding: 2px 8px; background: var(--face);
+  border: 1px solid; border-color: var(--hi) var(--dk) var(--dk) var(--hi);
+  box-shadow: inset -1px -1px var(--lo), inset 1px 1px var(--light);
+}
+.task:active { border-color: var(--dk) var(--hi) var(--hi) var(--dk); box-shadow: inset 1px 1px var(--lo); }
+
+/* --- minimized columns: collapse the grid track and hide the paint --- */
+#layout.left-min  { grid-template-columns: 0 0 minmax(0, 1fr); }
+#layout.right-min { grid-template-columns: minmax(0, 1fr) 0 0; }
+#layout.left-min  > #gallery, #layout.left-min  > #hsplit,
+#layout.right-min > #panel,   #layout.right-min > #hsplit { visibility: hidden; }
+
+[hidden] { display: none !important; }
+
+/* classic scrollbars */
+* { scrollbar-width: auto; scrollbar-color: var(--face) var(--face-2); }
+::-webkit-scrollbar { width: 16px; height: 16px; }
+::-webkit-scrollbar-track { background: var(--face-2); }
+::-webkit-scrollbar-thumb { background: var(--face); border: 1px solid var(--dk);
+  box-shadow: inset -1px -1px var(--lo), inset 1px 1px var(--hi); }

@@ -1,0 +1,162 @@
+{
+  "_schema": {
+    "note": "Curated app manifest. scripts/build.mjs compiles each app to public/apps/<id>/<artifact>; scripts/generate.mjs emits one loader page per entry. Adding an app = source (or submodule) + an entry here + rebuild.",
+    "fields": {
+      "id": "url-safe slug; also the public/apps/<id>/ directory",
+      "name": "display label on the gallery card",
+      "description": "one-line blurb",
+      "source": "'local' (compile sourceDir with our javac) | 'submodule' (run build cmd) | 'prebuilt' (copy apps/<id>/<artifact>, a jar built once from an upstream repo)",
+      "sourceDir": "for source=local: dir of .java files to compile (relative to repo root)",
+      "build": "for source=submodule: build command",
+      "mainClass": "Main-Class written into the jar manifest (source=local)",
+      "artifact": "output jar filename under public/apps/<id>/ (for source=prebuilt, also the committed jar under apps/<id>/)",
+      "javaTarget": "javac --release level; build fails if > 17 (CheerpJ ceiling)",
+      "cheerpjVersion": "8 | 11 | 17 — the runtime the loader inits for this app",
+      "display": "{ w, h } CheerpJ display size in px",
+      "relay": "optional true — app bundles the javalabrelay client; loader registers cheerpj-shim.js natives, sets javalab.browser=true, and passes --browser (pair/fetch over wss://javalab.dconn.dev/relay)",
+      "disclaimer": "optional true — show a 98/XP modal about CheerpJ/WASM performance that must be dismissed (OK) before the jar runs; for heavier games",
+      "touchKeys": "optional array of key tokens (e.g. ['w','a','s','d','q','e','Escape',' ']) — on touch devices, render an on-screen gamepad in the stage that dispatches these keys into the realm; the keyboard still works on desktop",
+      "thumbnail": "image filename (relative to the app dir) copied to public/apps/<id>/",
+      "webNotes": "porting caveats (see each app's WEB_NOTES.md; do not revert)"
+    }
+  },
+  "apps": [
+    {
+      "id": "javarominoes",
+      "name": "Javarominoes",
+      "description": "Tetris-inspired block-stacking puzzle game built with Java Swing.",
+      "source": "prebuilt",
+      "artifact": "Javarominoes.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 1280, "h": 720 },
+      "disclaimer": true,
+      "touchKeys": ["a", "s", "d", "q", "e", "Escape", " "],
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/javarominoes (NetBeans Ant, Java 8). Jar bundles the chiptune-synth engine (chiptunesynth.*); the song classes (Korobeiniki, Wily, DuckTales Moon, Hyrule Temple, ...) live in javarominoes/model/music. MIDI playback was dropped — all music is synthesized, so audio needs the Java-8 runtime. Native 1280x720; the stage scales it to fit."
+    },
+    {
+      "id": "seas-of-yore",
+      "name": "Seas of Yore",
+      "description": "A medieval Battleship-inspired board game with custom sprites and modes.",
+      "source": "prebuilt",
+      "artifact": "SeasOfYore.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 800, "h": 800 },
+      "relay": true,
+      "disclaimer": true,
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/seas-of-yore (NetBeans Ant, Java 8). Bundles the javalabrelay client; online multiplayer (host/join a room code) runs over wss://javalab.dconn.dev/relay via the cheerpj-shim.js WebSocket natives + javalab.browser=true. Image assets live at the jar root under images/. ~6 MB jar — most of it is the title art."
+    },
+    {
+      "id": "draw-shapes",
+      "name": "Draw Shapes",
+      "description": "Lightweight drawing program: shapes, colors, brush sizes, undo, load/save.",
+      "source": "prebuilt",
+      "artifact": "DrawShapes.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 640, "h": 480 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/draw-shapes (NetBeans Ant, Java 8). Toolbar icons load from images/ at the jar root. Save/Load use the CheerpJ virtual filesystem, not the host disk."
+    },
+    {
+      "id": "chiptune-synth",
+      "name": "ChiptuneSynth",
+      "description": "NES 2A03-style chiptune player — pick a track and play; pulse/triangle/noise + percussion.",
+      "source": "prebuilt",
+      "artifact": "ChiptuneSynth.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 380, "h": 420 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/chiptune-synth. Operator-supplied prebuilt jar running chiptunesynth.player.ChiptunePlayer — the dedicated runner with the full song library (Korobeiniki, Wily, DuckTales Moon, Hyrule Temple, Contra Jungle, Flashman, Bloody Tears, Surf City). Native window 380x420. Audio via javax.sound.sampled — CheerpJ supports this on Java 8 only. (Replaced the earlier ChiptuneDemo launcher.)"
+    },
+    {
+      "id": "ten-color-chooser",
+      "name": "Ten-Color Chooser",
+      "description": "Swing color workbench: ten rows with pickers, darken/brighten, live hex.",
+      "source": "prebuilt",
+      "artifact": "TenColorChooser.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 640, "h": 480 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/ten-color-chooser (Maven layout, src/main/java, release 8). Compiled with our javac; pure JDK, no external deps."
+    },
+    {
+      "id": "stopwatch",
+      "name": "Stopwatch",
+      "description": "Swing stopwatch with min:sec:msec display, pause/resume, and reset.",
+      "source": "prebuilt",
+      "artifact": "Stopwatch.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 640, "h": 480 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/stopwatch (NetBeans Ant, Java 8). Pure Swing; runs as-is."
+    },
+    {
+      "id": "guess",
+      "name": "Guess",
+      "description": "Swing number-guessing game (1-1000) with styled feedback and validation.",
+      "source": "prebuilt",
+      "artifact": "Guess.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 640, "h": 480 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/guess (NetBeans Ant, Java 8). Pure Swing; runs as-is."
+    },
+    {
+      "id": "site-selector",
+      "name": "Site Selector",
+      "description": "A very lightweight web browser written in Java Swing.",
+      "source": "prebuilt",
+      "artifact": "SiteSelector.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 800, "h": 600 },
+      "relay": true,
+      "thumbnail": "thumbnail.png",
+      "webNotes": "From github.com/dylantcon/site-selector (NetBeans Ant, Java 8). Bundles the javalabrelay client; when run with javalab.browser=true it fetches pages through the relay's guarded GET proxy (FETCH over wss://javalab.dconn.dev/relay) instead of a direct cross-origin request, so remote sites load."
+    },
+    {
+      "id": "triangles",
+      "name": "Triangles",
+      "description": "A Swing animation of drifting, colorful triangles.",
+      "source": "prebuilt",
+      "artifact": "triangles.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 500, "h": 500 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "Operator-supplied prebuilt jar (default-package Triangles); Main-Class stamped at install. Pure Swing, Java 8."
+    },
+    {
+      "id": "screensaver",
+      "name": "Screen Saver",
+      "description": "A screensaver that paints a field of random colorful ellipses.",
+      "source": "prebuilt",
+      "artifact": "screensaver.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 800, "h": 600 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "Operator-supplied prebuilt jar (default-package ScreenSaver); Main-Class stamped at install. Pure Swing, Java 8."
+    },
+    {
+      "id": "snowman",
+      "name": "Snowman",
+      "description": "A little Swing winter scene with a snowman.",
+      "source": "prebuilt",
+      "artifact": "snowman.jar",
+      "javaTarget": 8,
+      "cheerpjVersion": 8,
+      "display": { "w": 600, "h": 400 },
+      "thumbnail": "thumbnail.png",
+      "webNotes": "Operator-supplied prebuilt jar (default-package Snowman); Main-Class stamped at install. Pure Swing, Java 8."
+    }
+  ]
+}

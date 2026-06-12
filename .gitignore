@@ -1,0 +1,20 @@
+node_modules/
+build/
+lib/
+# Large spike artifacts — not committed (regenerate via spike/ + Temurin 8 rt.jar)
+public/spike/rt8.jar
+public/spike/ecj-3.26.0.jar
+public/spike/tools.jar
+spike/gui-screenshot.png
+spike/console-screenshot.png
+# Generated site output (scripts/build.mjs + generate.mjs write here);
+# keep the hand-written spike debug harness under public/spike/.
+/public/*
+!/public/spike/
+
+# Dev logs — kept locally, never pushed to remote
+devlog/
+spike/e2e-*.png
+spike/shot-*.png
+public/spike/gjf.jar
+spike/live-*.png

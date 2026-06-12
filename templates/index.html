@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaLab - Java in your browser</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/ide.bundle.css">
+<!--APPS_DATA-->
+</head>
+<body>
+<header id="topbar">
+  <h1>Java<span>Lab</span><a class="up-link" href="https://dconn.dev/" title="Up to dconn.dev (the mother site)">&#8593;&nbsp;dconn.dev</a></h1>
+  <p class="tagline">A Java 8 emulator that runs entirely in your browser. Anything you upload or write stays on your machine. <a href="/about.html" style="color:var(--navy);font-weight:bold;text-decoration:underline;white-space:nowrap">How it works &#9656;</a></p>
+</header>
+
+<main id="layout">
+  <!-- LEFT: a window with two tabs — the curated Gallery and the Viewer (where
+       apps run). The Viewer is reachable any time, even with nothing running. -->
+  <section id="gallery" aria-label="Apps">
+    <div class="winbar">
+      <span class="winbar-title">Apps</span>
+      <button class="win-min" type="button" data-min="left" title="Minimize" aria-label="Minimize Apps">_</button>
+    </div>
+    <div id="left-tabs" class="tabbar" role="tablist">
+      <button class="tab is-active" data-ltab="gallery" role="tab" aria-selected="true">Gallery</button>
+      <button class="tab" data-ltab="viewer" role="tab" aria-selected="false">Viewer</button>
+    </div>
+
+    <div class="ltab-panel is-active" data-lpanel="gallery">
+      <div id="gallery-grid" role="list"><!-- cards injected by gallery.js --></div>
+    </div>
+
+    <div class="ltab-panel" data-lpanel="viewer">
+      <div id="stage">
+        <div id="stage-bar">
+          <button id="stage-back" type="button">&lt;&lt; Gallery</button>
+          <span id="stage-title"></span>
+          <span class="stage-spacer"></span>
+          <button id="stage-max" type="button">Maximize</button>
+        </div>
+        <div id="stage-host"><!-- realm iframe goes here; empty-state is CSS ::before --></div>
+      </div>
+    </div>
+  </section>
+
+  <div id="hsplit" title="Drag to resize"></div>
+
+  <!-- RIGHT: visitor sandbox -->
+  <aside id="panel" aria-label="Your sandbox">
+    <div class="winbar">
+      <span class="winbar-title">Sandbox</span>
+      <button class="win-min" type="button" data-min="right" title="Minimize" aria-label="Minimize Sandbox">_</button>
+    </div>
+    <div id="tabbar" class="tabbar" role="tablist">
+      <button class="tab is-active" data-tab="upload" role="tab" aria-selected="true">Upload &amp; run</button>
+      <button class="tab" data-tab="ide" role="tab" aria-selected="false">Write Java</button>
+    </div>
+
+    <div class="tab-panel is-active" data-panel="upload">
+      <div id="upload-controls">
+        <label class="filepick" id="filepick">
+          <input type="file" id="file-input" accept=".jar,application/java-archive" hidden>
+          <span class="filepick-label">Choose a <code>.jar</code> - or drop it here</span>
+        </label>
+        <div id="storage-usage" aria-live="polite"></div>
+        <p class="boundary-note">Your jars are read in the browser and kept in this browser's storage only - never uploaded.</p>
+      </div>
+      <div id="upload-list" role="list"><!-- stored-jar cards injected by upload.js --></div>
+    </div>
+
+    <div class="tab-panel" data-panel="ide">
+      <div id="ide-mount"><!-- JavaLabIDE.init() mounts the editor here on first open --></div>
+    </div>
+  </aside>
+</main>
+
+<!-- Taskbar: a minimized column collapses to a button here (Windows-style). -->
+<footer id="taskbar">
+  <button class="task" id="restore-left" type="button" hidden>Apps</button>
+  <button class="task" id="restore-right" type="button" hidden>Sandbox</button>
+</footer>
+
+<script src="/ide.bundle.js" defer></script>
+<script src="/main.bundle.js" defer></script>
+</body>
+</html>

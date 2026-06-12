@@ -1,0 +1,127 @@
+/* JavaLab mini-IDE — NetBeans-1.0 / Java-Metal / Windows-9x chrome.
+   Gray beveled panels, square corners, classic tree + light Output window. */
+#ide {
+  display: flex; flex-direction: column; height: 100%; min-height: 0;
+  font-family: Tahoma, Geneva, "MS Sans Serif", Verdana, sans-serif; font-size: 11px;
+  color: #0a0a0a; background: #c3c7cb;
+}
+
+/* --- toolbar --- */
+#ide-toolbar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 3px; padding: 3px;
+  background: #c3c7cb; border-bottom: 1px solid #87898c;
+}
+.tb {
+  font: inherit; font-size: 11px; color: #0a0a0a; cursor: pointer; background: #c3c7cb; padding: 2px 9px;
+  border: 1px solid; border-color: #fff #000 #000 #fff;
+  box-shadow: inset -1px -1px #87898c, inset 1px 1px #dfdfdf;
+}
+.tb:active { border-color: #000 #fff #fff #000; box-shadow: inset 1px 1px #87898c; }
+.tb-primary { font-weight: bold; }
+.tb-toggle.is-on { border-color: #000 #fff #fff #000; box-shadow: inset 1px 1px #87898c; background: #aebfbb; }
+.tb-sep { width: 2px; align-self: stretch; margin: 1px 3px; background: #87898c; box-shadow: 1px 0 #fff; }
+
+/* --- menu bar (classic Win9x / NetBeans) --- */
+#ide-menubar { display: flex; background: #c3c7cb; border-bottom: 1px solid #87898c; padding: 1px 2px; }
+.ide-menu { position: relative; }
+.ide-menu-top {
+  font: inherit; font-size: 11px; color: #0a0a0a; background: transparent; border: 1px solid transparent;
+  padding: 2px 8px; cursor: pointer;
+}
+.ide-menu.is-open .ide-menu-top, .ide-menu-top:hover { background: #1a1a40; color: #fff; }
+.ide-menu-pop { display: none; position: absolute; top: 100%; left: 0; z-index: 50; min-width: 168px;
+  background: #c3c7cb; border: 1px solid; border-color: #fff #000 #000 #fff; box-shadow: 2px 2px 0 rgba(0,0,0,.35); padding: 2px; }
+.ide-menu.is-open .ide-menu-pop { display: block; }
+.ide-menu-pop button {
+  display: block; width: 100%; text-align: left; font: inherit; font-size: 11px; color: #0a0a0a;
+  background: transparent; border: none; padding: 3px 14px 3px 10px; cursor: pointer; white-space: nowrap;
+}
+.ide-menu-pop button:hover { background: #1a1a40; color: #fff; }
+
+#ide-body { flex: 1; min-height: 0; display: flex; gap: 2px; padding: 2px; --sb: 150px; }
+
+/* --- sidebar: file tree + manifest (sunken white), resizable via #ide-vsplit --- */
+#ide-sidebar { width: var(--sb); flex: 0 0 var(--sb); min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#ide-vsplit { flex: 0 0 5px; cursor: ew-resize; background: #c3c7cb;
+  box-shadow: inset -1px 0 #87898c, inset 1px 0 #fff; }
+#ide-vsplit:hover { background: #aebfbb; }
+.ide-files, .ide-manifest {
+  background: #fff; border: 1px solid; border-color: #87898c #fff #fff #87898c;
+}
+.ide-files { flex: 1; min-height: 0; overflow: auto; }
+.ide-pane-head {
+  display: flex; align-items: center; justify-content: space-between; font-weight: bold; font-size: 11px;
+  color: #fff; background: linear-gradient(90deg, #1a1a40, #008c8c); padding: 2px 5px;
+}
+.ide-mini {
+  font: inherit; font-size: 10px; color: #0a0a0a; cursor: pointer; background: #c3c7cb; padding: 0 6px;
+  border: 1px solid; border-color: #fff #000 #000 #fff; box-shadow: inset -1px -1px #87898c;
+}
+.ide-mini:active { border-color: #000 #fff #fff #000; }
+.ide-file {
+  display: flex; align-items: center; gap: 3px; padding: 2px 5px; cursor: pointer; font-size: 11px;
+  color: #0a0a0a; font-family: "Courier New", Courier, monospace;
+}
+.ide-file.is-active { background: #1a1a40; }
+.ide-file.is-active .ide-file-name { color: #fff; }
+.ide-file-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ide-file-act {
+  display: none; font: inherit; font-size: 9px; cursor: pointer; background: #c3c7cb; color: #000; padding: 0 3px;
+  border: 1px solid; border-color: #fff #000 #000 #fff;
+}
+.ide-file:hover .ide-file-act { display: inline-block; }
+.ide-mf-row { display: flex; flex-direction: column; gap: 2px; padding: 4px 5px; font-size: 10px; color: #333; }
+.ide-mf-input {
+  font-family: "Courier New", Courier, monospace; font-size: 11px; color: #000; background: #fff; padding: 1px 3px;
+  border: 1px solid; border-color: #87898c #fff #fff #87898c; box-shadow: inset 1px 1px #aaa;
+}
+.ide-mf-input:focus { outline: 1px dotted #1a1a40; outline-offset: -2px; }
+
+/* --- main: open-file tabs + editor + output --- */
+#ide-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#ide-tabs { display: flex; gap: 2px; }
+.ide-tab {
+  font: inherit; font-size: 11px; color: #0a0a0a; cursor: pointer; background: #b0b4b9; padding: 2px 10px;
+  font-family: "Courier New", Courier, monospace;
+  border: 1px solid; border-color: #fff #000 #c3c7cb #fff; border-bottom: none; white-space: nowrap;
+}
+.ide-tab.is-active { background: #c3c7cb; font-weight: bold; }
+
+#ide-editor {
+  flex: 1; min-height: 60px; overflow: hidden; background: #fff;
+  border: 1px solid; border-color: #87898c #fff #fff #87898c;
+}
+#ide-editor .cm-editor { height: 100%; }
+
+#ide-console {
+  height: 132px; flex: 0 0 132px; background: #fff; padding: 2px;
+  border: 1px solid; border-color: #87898c #fff #fff #87898c; box-shadow: inset 1px 1px #aaa;
+}
+#ide-console .xterm { height: 100%; }
+
+/* --- y2k PowerPoint transition (gaudy on purpose) --- */
+.ide-transition {
+  position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  background: repeating-linear-gradient(45deg, #1a1a40 0 24px, #008c8c 24px 48px);
+  animation: ide-wipe .85s steps(14) forwards;
+}
+.ide-transition-label { color: #fff; font: bold 22px Tahoma, sans-serif; letter-spacing: 1px; text-shadow: 2px 2px #000; }
+@keyframes ide-wipe {
+  0%   { clip-path: inset(0 100% 0 0); }
+  45%  { clip-path: inset(0 0 0 0); }
+  55%  { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 0 0 100%); }
+}
+
+/* --- About dialog (classic message box) --- */
+.ide-about-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center; }
+.ide-about { width: 340px; background: #c3c7cb; border: 1px solid; border-color: #fff #000 #000 #fff;
+  box-shadow: inset -1px -1px #87898c, inset 1px 1px #dfdfdf, 3px 3px 0 rgba(0,0,0,.4); }
+.ide-about-title { color: #fff; font-weight: bold; font-size: 11px; padding: 2px 5px; margin: 2px;
+  background: linear-gradient(90deg, #1a1a40, #008c8c); }
+.ide-about-body { padding: 10px 12px; font-size: 11px; color: #0a0a0a; line-height: 1.5; }
+.ide-about-body p { margin: 0 0 8px; }
+.ide-about-actions { text-align: center; margin-top: 4px; }
+.ide-about-ok { min-width: 72px; }

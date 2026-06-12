@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Pin the viewport to the app's native display width (NOT device-width): this
+     page is a fixed W×H design surface rendered inside an iframe the stage scales
+     uniformly. device-width distorts it on mobile (the square display squished to
+     portrait, truncating content); width={{W}} keeps content 1:1 with the iframe. -->
+<meta name="viewport" content="width={{W}}">
+<title>{{NAME}} - JavaLab</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #06141d; color: #d6f5ef;
+               font-family: Menlo, Consolas, monospace;
+               display: flex; align-items: center; justify-content: center; }
+  /* The CheerpJ display must not be clipped by #app — let an oversized Java window
+     spill visibly rather than be cut off; the realm page itself never scrolls. */
+  #app { width: {{W}}px; height: {{H}}px; overflow: visible; }
+  #status { color: #37c7b6; font-size: .85rem; padding: 1rem; text-align: center; }
+
+  /* 98/XP disclaimer dialog (only present for apps flagged disclaimer:true).
+     Self-contained — this loader page does not load the site stylesheet. */
+  #dlg-ov { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,20,.5);
+            display: flex; align-items: center; justify-content: center;
+            font-family: Tahoma, "Geneva", "MS Sans Serif", Verdana, sans-serif; color: #0a0a0a; }
+  #dlg { width: min(360px, 90vw); background: #c3c7cb; border: 1px solid #000;
+         box-shadow: inset -1px -1px #87898c, inset 1px 1px #fff,
+                     inset -2px -2px #87898c, inset 2px 2px #dfdfdf, 3px 3px 0 rgba(0,0,0,.4); }
+  #dlg .tb { background: linear-gradient(90deg, #1a1a40, #008c8c); color: #fff;
+             font-weight: bold; font-size: 12px; padding: 3px 7px; }
+  #dlg .bd { padding: 14px 16px 10px; font-size: 12px; line-height: 1.55; }
+  #dlg .bn { padding: 4px 0 14px; text-align: center; }
+  #dlg-ok { font: inherit; font-size: 12px; color: #0a0a0a; cursor: pointer; min-width: 84px;
+            padding: 4px 18px 5px; background: #c3c7cb;
+            border: 1px solid; border-color: #fff #000 #000 #fff;
+            box-shadow: inset -1px -1px #87898c, inset 1px 1px #dfdfdf; }
+  #dlg-ok:active { border-color: #000 #fff #fff #000; box-shadow: inset 1px 1px #87898c; }
+</style>
+</head>
+<body>
+<div id="app"><div id="status">Loading Java runtime...</div></div>
+{{DISCLAIMER}}
+<!-- Each app runs in its OWN realm: this standalone page is loaded in an iframe;
+     closing the iframe tears down the runtime (threads, audio, statics). -->
+<script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
+{{SHIM}}<script>
+(async () => {
+  const app = document.getElementById("app");
+  const tell = (msg) => { try { parent.postMessage({ source: "javalab-app", id: "{{ID}}", ...msg }, "*"); } catch (e) {} };
+  try {
+    // Relay apps additionally pass { natives, javaProperties } so the bundled
+    // javalabrelay transport binds the browser's WebSocket and selects the
+    // browser path (javalab.browser=true) — see generate.mjs. The runtime starts
+    // downloading immediately; for disclaimer apps the jar is gated on the dialog
+    // (window.__dlgGate), so the download overlaps the user reading it.
+    const initP = cheerpjInit({{INIT}});
+    initP.catch(() => {});                 // real handling is the await below
+    if (window.__dlgGate) await window.__dlgGate;
+    await initP;
+    app.innerHTML = "";
+    cheerpjCreateDisplay({{W}}, {{H}}, app);
+    tell({ event: "ready" });
+    {{RUN}}
+    tell({ event: "exit" });
+  } catch (e) {
+    app.innerHTML = '<div id="status">Failed to start: ' + e + "</div>";
+    tell({ event: "error", message: String(e) });
+  }
+})();
+</script>
+</body>
+</html>
