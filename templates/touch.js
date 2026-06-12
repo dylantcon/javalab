@@ -3,10 +3,21 @@
 // Some gallery apps (e.g. Javarominoes) are keyboard-driven. On a touch device
 // there's no keyboard, so for apps that declare `touchKeys` we OVERLAY a gamepad
 // on top of the running game (like a JLayeredPane — the CheerpJ display keeps its
-// full size; the buttons float in the bottom corners) and dispatch synthetic key
+// full size; the buttons float in the bottom corners) and feed synthetic key
 // events into the app's CheerpJ realm — a same-origin iframe whose #cheerpjDisplay
 // holds the textarea CheerpJ captures keys on. We also flip that textarea to
 // readonly + inputmode=none so the soft keyboard doesn't auto-expand.
+//
+// PUB/SUB: the buttons are PUBLISHERS — on press/release they emit a logical
+// key intent. A single InputBridge SUBSCRIBER owns delivery into the realm: it
+// resolves the capture textarea (cached + revalidated across the iframe's
+// post-launch navigation), keeps it focused so AWT always has a focus owner, and
+// translates each intent into exactly one keydown / keyup. It mirrors the set of
+// held keys so it can (a) ignore re-entrant presses and (b) flush anything still
+// down on teardown — otherwise a VK code stays stuck in the game's own pressed
+// set. We deliberately do NOT auto-repeat: keyboard-driven games like Javarominoes
+// keep their own pressed-keys hash and poll it on a timer for DAS, so all the JS
+// side must do is hold the key down faithfully from finger-down to finger-up.
 //
 // Mounted only on touch-PRIMARY devices (matchMedia hover:none + pointer:coarse),
 // so a touchscreen PC — where the mouse is the primary pointer — never shows it,
@@ -17,6 +28,12 @@ const SPECIAL = {
   "Escape": { label: "Esc",   code: "Escape", keyCode: 27 },
 };
 const MOVE = new Set(["w", "a", "s", "d"]); // directional → left cluster
+
+// A finger-tap can be shorter than the game's input poll interval; keep a tapped
+// key "pressed" at least this long so the poller samples it at least once. Real
+// deliberate taps already exceed this, so it only ever extends accidental
+// ultra-fast taps — it never slows normal tapping or held movement.
+const MIN_HELD_MS = 70;
 
 function resolve(k) {
   if (SPECIAL[k]) return { key: k, ...SPECIAL[k] };
@@ -29,6 +46,7 @@ export function isTouchDevice() {
 }
 
 let pad = null;
+let bridge = null;
 let observers = [];
 let styled = false;
 
@@ -88,6 +106,63 @@ function keyTarget(iframe) {
   } catch (e) { return null; }
 }
 
+// The single SUBSCRIBER. Owns delivery into the realm for every button: it
+// resolves the capture textarea (cached, revalidated when detached), focuses it
+// so AWT has a focus owner, and turns logical press/release into one keydown /
+// keyup. `held` mirrors the game's own pressed-keys set so we never double-fire a
+// keydown and can flush stragglers on teardown.
+function makeInputBridge(iframe) {
+  let cached = null;
+  const held = new Map();   // code -> { spec, downAt, releaseTimer }
+
+  const target = () => {
+    if (cached && cached.isConnected) return cached;
+    return (cached = keyTarget(iframe));
+  };
+
+  function press(spec) {
+    const t = target();
+    if (!t) return;                         // realm not ready → nothing to do
+    try { t.focus({ preventScroll: true }); } catch (e) {}   // keep AWT focused on the display
+    const cur = held.get(spec.code);
+    if (cur) {                              // already down (re-entrant press, or a
+      if (cur.releaseTimer) {               // re-press inside the min-hold window):
+        clearTimeout(cur.releaseTimer);     // cancel the pending release, keep it down
+        cur.releaseTimer = null;
+      }
+      return;                               // don't fire a second keydown
+    }
+    fireKey(t, "keydown", spec);
+    held.set(spec.code, { spec, downAt: performance.now(), releaseTimer: null });
+  }
+
+  function release(spec) {
+    const cur = held.get(spec.code);
+    if (!cur || cur.releaseTimer) return;
+    const fire = () => {
+      held.delete(spec.code);
+      const t = target();
+      if (t) fireKey(t, "keyup", spec);
+    };
+    const elapsed = performance.now() - cur.downAt;
+    if (elapsed >= MIN_HELD_MS) fire();
+    else cur.releaseTimer = setTimeout(fire, MIN_HELD_MS - elapsed);
+  }
+
+  function dispose() {
+    // Release everything still down so no VK code stays stuck in the game's
+    // pressed-keys hash after the pad is torn down.
+    const t = target();
+    held.forEach((cur) => {
+      if (cur.releaseTimer) clearTimeout(cur.releaseTimer);
+      if (t) fireKey(t, "keyup", cur.spec);
+    });
+    held.clear();
+  }
+
+  return { press, release, dispose };
+}
+
 // Keep CheerpJ's capture textareas from popping the mobile soft keyboard. The
 // iframe NAVIGATES after launch (so the doc changes) and the textareas are created
 // during boot — so (re)bind on load and watch for them.
@@ -114,33 +189,36 @@ function suppressKeyboard(iframe) {
   iframe.addEventListener("load", bind);
 }
 
-function button(spec, iframe) {
+// A PUBLISHER. On finger-down it captures the pointer so a finger drifting off
+// the (small) button can't drop the press, then publishes press/release to the
+// bridge. Pointer capture means there's no spurious pointerleave to handle, and
+// pointerup/cancel/lostpointercapture all funnel through one idempotent release.
+function button(spec, bridge) {
   const btn = document.createElement("button");
   btn.className = "tp-btn" + (spec.wide ? " wide" : "");
   btn.type = "button";
   btn.textContent = spec.label;
   btn.setAttribute("aria-label", spec.label);
-  let pressed = false;
+  let active = false;
   const down = (e) => {
-    e.preventDefault();
-    if (pressed) return;
-    pressed = true;
+    e.preventDefault();                     // don't steal focus from the textarea / no synth-mouse
+    if (active) return;
+    active = true;
     btn.classList.add("on");
-    const t = keyTarget(iframe);
-    if (t) fireKey(t, "keydown", spec);
+    try { btn.setPointerCapture(e.pointerId); } catch (e2) {}
+    bridge.press(spec);
   };
   const up = (e) => {
-    e.preventDefault();
-    if (!pressed) return;
-    pressed = false;
+    if (e) e.preventDefault();
+    if (!active) return;
+    active = false;
     btn.classList.remove("on");
-    const t = keyTarget(iframe);
-    if (t) fireKey(t, "keyup", spec);
+    bridge.release(spec);
   };
   btn.addEventListener("pointerdown", down);
   btn.addEventListener("pointerup", up);
-  btn.addEventListener("pointerleave", up);
   btn.addEventListener("pointercancel", up);
+  btn.addEventListener("lostpointercapture", up);   // safety net if capture is revoked
   btn.addEventListener("contextmenu", (e) => e.preventDefault());
   return btn;
 }
@@ -151,6 +229,7 @@ export function mountTouchpad(host, iframe, keys) {
   injectStyles();
   unmountTouchpad();
   suppressKeyboard(iframe);
+  bridge = makeInputBridge(iframe);
   if (getComputedStyle(host).position === "static") host.style.position = "relative";
   pad = document.createElement("div");
   pad.className = "touchpad";
@@ -160,7 +239,7 @@ export function mountTouchpad(host, iframe, keys) {
   actions.className = "tp-actions";
   for (const k of keys) {
     const spec = resolve(k);
-    (MOVE.has(spec.key) ? dpad : actions).appendChild(button(spec, iframe));
+    (MOVE.has(spec.key) ? dpad : actions).appendChild(button(spec, bridge));
   }
   pad.appendChild(dpad);
   pad.appendChild(actions);
@@ -170,5 +249,6 @@ export function mountTouchpad(host, iframe, keys) {
 export function unmountTouchpad() {
   observers.forEach((o) => o.disconnect());
   observers = [];
+  if (bridge) { bridge.dispose(); bridge = null; }
   if (pad) { pad.remove(); pad = null; }
 }
