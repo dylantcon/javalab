@@ -26,7 +26,10 @@ const tell = (msg, transfer) => parent.postMessage({ source: "javalab-build", ..
   }
 })();
 
-const GJF_CP = "/app/builder/gjf.jar:/app/builder/tools.jar";
+// JavaLabFormat (jlformat.jar) reads the source, reformats via google-java-format's
+// API, and writes the result into the writable /files VFS. gjf 1.7 parses with the
+// JDK javac, so tools.jar must be on the classpath at runtime.
+const GJF_CP = "/app/builder/jlformat.jar:/app/builder/gjf.jar:/app/builder/tools.jar";
 
 window.addEventListener("message", (e) => {
   const m = e.data;
@@ -37,13 +40,24 @@ window.addEventListener("message", (e) => {
 
 async function doFormat(m) {
   try {
-    const path = "/str/" + m.name;
-    try { if (typeof cheerpOSRemoveStringFile === "function") cheerpOSRemoveStringFile(path); } catch (e) {}
-    cheerpOSAddStringFile(path, m.content);
-    consoleEl.textContent = "";
-    // google-java-format's Main prints the formatted source to stdout → #console
-    const rc = await cheerpjRunMain("com.google.googlejavaformat.java.Main", GJF_CP, path);
-    tell({ event: "format-result", id: m.id, ok: rc === 0, formatted: rc === 0 ? consoleEl.innerText : null });
+    const inPath = "/str/" + m.name;
+    const outPath = "/files/jlformat-out.java";
+    try { if (typeof cheerpOSRemoveStringFile === "function") cheerpOSRemoveStringFile(inPath); } catch (e) {}
+    cheerpOSAddStringFile(inPath, m.content);
+    // CheerpJ stdout isn't readable from this page, so JavaLabFormat writes the
+    // formatted source to /files and we read the bytes back via cjFileBlob — the
+    // same channel doBuild uses for the jar. rc != 0 → unformattable (IDE falls
+    // back to a basic re-indent).
+    const rc = await cheerpjRunMain("JavaLabFormat", GJF_CP, inPath, outPath);
+    let formatted = null;
+    if (rc === 0 && typeof cjFileBlob === "function") {
+      try {
+        const b = cjFileBlob(outPath);
+        const blob = b && typeof b.then === "function" ? await b : b;
+        formatted = new TextDecoder().decode(await blob.arrayBuffer());
+      } catch (e) { /* fall through → ok:false */ }
+    }
+    tell({ event: "format-result", id: m.id, ok: rc === 0 && formatted != null, formatted });
   } catch (err) {
     tell({ event: "format-result", id: m.id, ok: false, formatted: null });
   }

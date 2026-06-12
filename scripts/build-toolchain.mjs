@@ -1,6 +1,8 @@
 // Build the IDE toolchain into public/builder/:
 //   builder.jar  — compiled from spike/src/Builder.java (the verified compile+jar builder)
+//   jlformat.jar — compiled from spike/src/JavaLabFormat.java (the Format action)
 //   tools.jar    — OpenJDK 8 compiler (com.sun.tools.javac.Main), the in-browser javac
+//   gjf.jar      — google-java-format 1.7, used by jlformat.jar + at format runtime
 //
 //   node scripts/build-toolchain.mjs
 //
@@ -45,14 +47,25 @@ async function ensureGjfJar() {
 }
 
 const toolsJar = await ensureToolsJar();
-await ensureGjfJar();
+const gjfJar = await ensureGjfJar();
+
+const classesDir = join(BUILDER_DIR, "_classes");
 
 // builder.jar — Builder.java references com.sun.tools.javac.Main, so compile against tools.jar.
-const classesDir = join(BUILDER_DIR, "_classes");
 await rm(classesDir, { recursive: true, force: true });
 await mkdir(classesDir, { recursive: true });
 execFileSync("javac", ["--release", "8", "-cp", toolsJar, "-d", classesDir, join(ROOT, "spike/src/Builder.java")], { stdio: "inherit" });
 execFileSync("jar", ["--create", "--file", join(BUILDER_DIR, "builder.jar"), "--main-class", "Builder", "-C", classesDir, "."], { stdio: "inherit" });
+
+// jlformat.jar — JavaLabFormat wraps google-java-format's Formatter API (compile
+// against gjf.jar). Kept as its OWN jar (not folded into builder.jar) so the
+// already-deployed, immutably-cached builder.jar URL stays byte-stable; this new
+// path is fetched fresh, and build-realm.html (served no-cache) references it.
+await rm(classesDir, { recursive: true, force: true });
+await mkdir(classesDir, { recursive: true });
+execFileSync("javac", ["--release", "8", "-cp", gjfJar, "-d", classesDir, join(ROOT, "spike/src/JavaLabFormat.java")], { stdio: "inherit" });
+execFileSync("jar", ["--create", "--file", join(BUILDER_DIR, "jlformat.jar"), "--main-class", "JavaLabFormat", "-C", classesDir, "."], { stdio: "inherit" });
+
 await rm(classesDir, { recursive: true, force: true });
 
-console.log("[toolchain] public/builder/{builder.jar, tools.jar} ready");
+console.log("[toolchain] public/builder/{builder.jar, jlformat.jar, tools.jar, gjf.jar} ready");
