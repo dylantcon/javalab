@@ -13,7 +13,11 @@
 
 <script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
 <script>
-const CP = "/app/builder/builder.jar:/app/builder/tools.jar";
+// builder.jar + jlformat.jar are our own code and change on every rebuild, but
+// nginx serves *.jar immutable; generate.mjs stamps a ?v=<contenthash> (this page
+// is no-cache, so it always points at the current jars). tools.jar/gjf.jar are
+// fixed upstream versions, left unversioned.
+const CP = "/app/builder/builder.jar?v=__BUILDER_HASH__:/app/builder/tools.jar";
 const consoleEl = document.getElementById("console");
 const tell = (msg, transfer) => parent.postMessage({ source: "javalab-build", ...msg }, "*", transfer || []);
 
@@ -29,7 +33,7 @@ const tell = (msg, transfer) => parent.postMessage({ source: "javalab-build", ..
 // JavaLabFormat (jlformat.jar) reads the source, reformats via google-java-format's
 // API, and writes the result into the writable /files VFS. gjf 1.7 parses with the
 // JDK javac, so tools.jar must be on the classpath at runtime.
-const GJF_CP = "/app/builder/jlformat.jar:/app/builder/gjf.jar:/app/builder/tools.jar";
+const GJF_CP = "/app/builder/jlformat.jar?v=__JLFORMAT_HASH__:/app/builder/gjf.jar:/app/builder/tools.jar";
 
 window.addEventListener("message", (e) => {
   const m = e.data;
@@ -76,14 +80,24 @@ async function doBuild(m) {
     consoleEl.textContent = "";
     const rc = await cheerpjRunMain("Builder", CP,
       "/files/classes", "/files/sim.jar", "/str/MANIFEST.MF", ...sources);
-    const diagnostics = consoleEl.innerText;
+    // Builder writes javac diagnostics next to the jar in /files; read them back
+    // via cjFileBlob (CheerpJ stdout isn't readable from this page) — the same
+    // channel as the jar bytes. Diagnostics are read even on failure (no jar).
+    let diagnostics = "";
     let jarBytes = null;
-    if (rc === 0 && typeof cjFileBlob === "function") {
+    if (typeof cjFileBlob === "function") {
       try {
-        const b = cjFileBlob("/files/sim.jar");
-        const blob = b && typeof b.then === "function" ? await b : b;
-        jarBytes = await blob.arrayBuffer();
-      } catch (err) { /* fall through → ok:false */ }
+        const db = cjFileBlob("/files/sim.jar.diag");
+        const dblob = db && typeof db.then === "function" ? await db : db;
+        diagnostics = new TextDecoder().decode(await dblob.arrayBuffer());
+      } catch (e) { /* no diagnostics file → leave empty */ }
+      if (rc === 0) {
+        try {
+          const b = cjFileBlob("/files/sim.jar");
+          const blob = b && typeof b.then === "function" ? await b : b;
+          jarBytes = await blob.arrayBuffer();
+        } catch (err) { /* fall through → ok:false */ }
+      }
     }
     tell({ event: "build-result", id: m.id, ok: rc === 0 && !!jarBytes, rc, diagnostics, jarBytes },
       jarBytes ? [jarBytes] : []);
