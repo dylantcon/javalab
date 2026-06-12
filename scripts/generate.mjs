@@ -19,7 +19,7 @@ await mkdir(PUBLIC, { recursive: true });
 
 // 1. Copy verbatim static assets — every top-level FILE in templates/ except the
 //    templated ones. The ide/ directory is skipped (esbuild bundles it).
-const TEMPLATED = new Set(["index.html", "app-loader.html", "run-upload.html", "about.html"]);
+const TEMPLATED = new Set(["index.html", "app-loader.html", "run-upload.html", "about.html", "build-realm.html"]);
 for (const name of await readdir(TEMPLATES)) {
   if (TEMPLATED.has(name)) continue;
   const src = join(TEMPLATES, name);
@@ -66,6 +66,15 @@ await writeFile(join(PUBLIC, "run-upload.html"), runUpload);
 const about = (await readFile(join(TEMPLATES, "about.html"), "utf8"))
   .replaceAll("/styles.css", `/styles.css?v=${V}`);
 await writeFile(join(PUBLIC, "about.html"), about);
+
+// 4c. build-realm.html: the IDE's hidden compiler/formatter realm. Cache-bust the
+// two toolchain jars our own code produces (builder.jar + jlformat.jar change on
+// every rebuild and are served immutable); tools.jar + gjf.jar are fixed upstream
+// versions, left as-is. The page is no-cache, so it always names the current jars.
+const buildRealm = (await readFile(join(TEMPLATES, "build-realm.html"), "utf8"))
+  .replaceAll("__BUILDER_HASH__", await fileHash(join(PUBLIC, "builder", "builder.jar")))
+  .replaceAll("__JLFORMAT_HASH__", await fileHash(join(PUBLIC, "builder", "jlformat.jar")));
+await writeFile(join(PUBLIC, "build-realm.html"), buildRealm);
 
 // 5. Per-app loader page (jar path, runtime version, display size baked in).
 // Apps flagged disclaimer:true get a 98/XP modal that must be dismissed before the

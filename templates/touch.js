@@ -11,7 +11,9 @@
 // PUB/SUB: the buttons are PUBLISHERS — on press/release they emit a logical
 // key intent. A single InputBridge SUBSCRIBER owns delivery into the realm: it
 // resolves the capture textarea (cached + revalidated across the iframe's
-// post-launch navigation), keeps it focused so AWT always has a focus owner, and
+// post-launch navigation), keeps it focused so AWT always has a focus owner —
+// re-asserted on every press AND release, plus a debounced self-heal that
+// reclaims focus if the page steals it (e.g. entering fullscreen) — and
 // translates each intent into exactly one keydown / keyup. It mirrors the set of
 // held keys so it can (a) ignore re-entrant presses and (b) flush anything still
 // down on teardown — otherwise a VK code stays stuck in the game's own pressed
@@ -113,17 +115,41 @@ function keyTarget(iframe) {
 // keydown and can flush stragglers on teardown.
 function makeInputBridge(iframe) {
   let cached = null;
+  let healTimer = null;
+  let guardedDoc = null;
   const held = new Map();   // code -> { spec, downAt, releaseTimer }
 
   const target = () => {
     if (cached && cached.isConnected) return cached;
     return (cached = keyTarget(iframe));
   };
+  const refocus = () => {
+    const t = target();
+    if (t) try { t.focus({ preventScroll: true }); } catch (e) {}
+  };
+
+  // Focus self-heal: while the pad is mounted, if the capture textarea loses
+  // focus (something on the page grabbed it), reclaim it — but DEBOUNCED, so a
+  // fullscreen transition (which legitimately parks focus on the parent #stage
+  // before stage.js's focusRealm hands it back) settles without a tug-of-war: a
+  // focusin on the textarea cancels the pending heal, so the common path is free.
+  const onFocusOut = () => { clearTimeout(healTimer); healTimer = setTimeout(refocus, 150); };
+  const onFocusIn  = () => { clearTimeout(healTimer); healTimer = null; };
+  const bindGuard = () => {
+    let doc;
+    try { doc = iframe.contentDocument; } catch (e) { return; }
+    if (!doc || doc === guardedDoc) return;   // iframe renavigates post-launch — bind each new doc once
+    guardedDoc = doc;
+    doc.addEventListener("focusout", onFocusOut, true);
+    doc.addEventListener("focusin", onFocusIn, true);
+  };
+  bindGuard();
+  iframe.addEventListener("load", bindGuard);
 
   function press(spec) {
     const t = target();
     if (!t) return;                         // realm not ready → nothing to do
-    try { t.focus({ preventScroll: true }); } catch (e) {}   // keep AWT focused on the display
+    refocus();                              // keep AWT focused on the display
     const cur = held.get(spec.code);
     if (cur) {                              // already down (re-entrant press, or a
       if (cur.releaseTimer) {               // re-press inside the min-hold window):
@@ -142,7 +168,9 @@ function makeInputBridge(iframe) {
     const fire = () => {
       held.delete(spec.code);
       const t = target();
-      if (t) fireKey(t, "keyup", spec);
+      if (!t) return;
+      refocus();                            // re-assert focus so the keyup routes too
+      fireKey(t, "keyup", spec);
     };
     const elapsed = performance.now() - cur.downAt;
     if (elapsed >= MIN_HELD_MS) fire();
@@ -150,6 +178,17 @@ function makeInputBridge(iframe) {
   }
 
   function dispose() {
+    // Stop the self-heal and detach the focus guard from the realm document.
+    clearTimeout(healTimer);
+    healTimer = null;
+    iframe.removeEventListener("load", bindGuard);
+    if (guardedDoc) {
+      try {
+        guardedDoc.removeEventListener("focusout", onFocusOut, true);
+        guardedDoc.removeEventListener("focusin", onFocusIn, true);
+      } catch (e) {}
+      guardedDoc = null;
+    }
     // Release everything still down so no VK code stays stuck in the game's
     // pressed-keys hash after the pad is torn down.
     const t = target();

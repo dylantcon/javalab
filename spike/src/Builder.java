@@ -30,6 +30,11 @@ public class Builder {
             Path outDir = Paths.get(args[0]);
             Path jarOut = Paths.get(args[1]);
             Path manifestPath = Paths.get(args[2]);
+            // The IDE reads javac diagnostics back from this file (CheerpJ stdout
+            // isn't readable from the host page — see the cheerpj-facts note); clear
+            // any prior run's diagnostics up front so a crash can't leave stale ones.
+            Path diagOut = Paths.get(args[1] + ".diag");
+            try { Files.write(diagOut, new byte[0]); } catch (Exception ignore) {}
             List<String> sources = new ArrayList<>(Arrays.asList(args).subList(3, args.length));
             System.out.println("BUILDER-BEGIN java.version=" + System.getProperty("java.version")
                     + " out=" + outDir + " jar=" + jarOut);
@@ -41,6 +46,11 @@ public class Builder {
             Files.createDirectories(outDir);
             List<String> jargs = new ArrayList<>();
             jargs.add("-d"); jargs.add(outDir.toString());
+            // Explicit classpath so javac doesn't inherit the launch classpath
+            // (CheerpJ puts builder.jar — now cache-busted as builder.jar?v=… — on
+            // it, which javac flags with a spurious "[path] unexpected extension"
+            // warning). User sources are all passed together, so they need no deps.
+            jargs.add("-classpath"); jargs.add(outDir.toString());
             jargs.add("-encoding"); jargs.add("UTF-8");
             jargs.add("-Xlint:all");
             jargs.addAll(sources);
@@ -48,6 +58,9 @@ public class Builder {
             int rc = com.sun.tools.javac.Main.compile(
                     jargs.toArray(new String[0]), new PrintWriter(diagBuf, true));
             String diags = diagBuf.toString().trim();
+            // Hand the raw javac diagnostics back to the IDE via /files (the one
+            // channel that works); also echo to stdout for the spike harness.
+            try { Files.write(diagOut, diags.getBytes("UTF-8")); } catch (Exception ignore) {}
             if (!diags.isEmpty()) {
                 for (String line : diags.split("\n")) System.out.println("BUILDER-DIAG " + line);
             }
