@@ -106,7 +106,18 @@ try {
   await clickModal("OK");
   check("About closes on OK", !(await modalOpen()));
 
-  // 9) No native dialogs anywhere
+  // 9) Inline diagnostics apply + clear WITHOUT a keystroke (compile output is
+  //    pushed imperatively; a clean build must clear stale markers immediately).
+  const lintMarks = () => page.locator("#ide .cm-lint-marker-error, #ide .cm-lintRange-error").count();
+  const activeFile = (await page.locator("#ide-tabs .ide-tab.is-active").first().textContent()).trim();
+  await page.evaluate((f) => window.__ideDebug.setDiags([{ file: f, line: 1, severity: "error", message: "boom" }]), activeFile);
+  await page.waitForTimeout(150);
+  check("inline diagnostics appear without a keystroke", await lintMarks() > 0);
+  await page.evaluate(() => window.__ideDebug.setDiags([]));
+  await page.waitForTimeout(150);
+  check("a clean compile clears diagnostics immediately", await lintMarks() === 0);
+
+  // 10) No native dialogs anywhere
   check("no native prompt/confirm/alert used", nativeDialogs === 0, `${nativeDialogs} native dialogs`);
 } catch (e) {
   check("verify run completed without error", false, e.message);

@@ -4,7 +4,7 @@ import { EditorView, keymap } from "@codemirror/view";
 import { EditorState, Compartment } from "@codemirror/state";
 import { indentWithTab, indentSelection } from "@codemirror/commands";
 import { java } from "@codemirror/lang-java";
-import { lintGutter, linter, forceLinting } from "@codemirror/lint";
+import { lintGutter, setDiagnostics } from "@codemirror/lint";
 import { vim } from "@replit/codemirror-vim";
 import { basicSetup } from "codemirror";
 import * as state from "./state.js";
@@ -19,9 +19,12 @@ let formatHook = null;         // orchestrator may override with google-java-for
 let diagnostics = [];          // [{file,line,severity,message}] from the last build
 const vimComp = new Compartment();
 
-// A single linter source (CM6's canonical pattern) that maps the last build's
-// diagnostics for the current file onto the live document.
-const javacLinter = linter((v) => {
+// Map the last build's diagnostics for the CURRENTLY shown file onto live
+// document positions. Applied imperatively via setDiagnostics (below), NOT a
+// linter() source: a linter source only re-runs on document edits, so a clean
+// compile (which changes no text) would never clear stale markers until the
+// next keystroke.
+function diagnosticsForView(v) {
   const items = [];
   for (const d of diagnostics) {
     if (d.file !== displayed) continue;
@@ -30,7 +33,13 @@ const javacLinter = linter((v) => {
     items.push({ from: ln.from, to: ln.to, severity: d.severity === "error" ? "error" : "warning", message: d.message });
   }
   return items;
-}, { delay: 30 });
+}
+
+// Push the current diagnostics into the editor right away (set, change, or
+// clear) — independent of any document edit.
+function applyDiagnostics() {
+  if (view) view.dispatch(setDiagnostics(view.state, diagnosticsForView(view)));
+}
 
 export function mountEditor(parent) {
   view = new EditorView({ parent, state: makeState("") });
@@ -59,10 +68,11 @@ export function setContent(text) {
 /** Trigger the format action programmatically (same path as Alt+Shift+F). */
 export function formatCurrent() { return runFormat(); }
 
-/** Update inline diagnostics from a build. `parsed` = [{file,line,severity,message}]. */
+/** Update inline diagnostics from a build. `parsed` = [{file,line,severity,message}].
+ *  Applies immediately, so a successful compile ([]) clears stale markers. */
 export function showDiagnostics(parsed) {
   diagnostics = parsed || [];
-  if (view) forceLinting(view);
+  applyDiagnostics();
 }
 
 function makeState(doc) {
@@ -73,7 +83,6 @@ function makeState(doc) {
       vimComp.of(vimOn ? vim() : []),
       basicSetup,
       java(),
-      javacLinter,
       lintGutter(),
       keymap.of([
         indentWithTab,                                   // Camp IDE: Tab indents
@@ -112,6 +121,7 @@ function syncFromState() {
   if (renameTimer) { clearTimeout(renameTimer); renameTimer = null; }   // drop a pending rename for the file we're leaving
   displayed = cur;
   view.setState(makeState(next));
+  applyDiagnostics();            // setState wipes the lint field — re-show this file's markers
 }
 
 // Direction 2 (code→filename): after the user stops typing, if the file's

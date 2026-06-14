@@ -1,7 +1,7 @@
 // index.js — IDE entry. esbuild bundles this (+ CM6/xterm/fflate) into
 // public/ide.bundle.js as window.JavaLabIDE = { init }. main.js calls
 // JavaLabIDE.init(container, ctx) the first time the "Write Java" tab opens.
-import { mountEditor, setVim, isVim, focusEditor, setFormatHook, setContent, formatCurrent } from "./editor.js";
+import { mountEditor, setVim, isVim, focusEditor, setFormatHook, setContent, formatCurrent, showDiagnostics } from "./editor.js";
 import { mountFiles, scaffoldIfEmpty, newSimulation } from "./files.js";
 import { mountManifestForm } from "./manifest-form.js";
 import { modalAlert } from "./modal.js";
@@ -64,7 +64,7 @@ export function init(container, ctx) {
   initBuildRealm();      // warm up the compiler realm in the background
   focusEditor();
 
-  window.__ideDebug = { files: () => state.snapshot(), isVim, setFile: (n, c) => state.setFile(n, c), setEditor: setContent, format: formatCurrent };
+  window.__ideDebug = { files: () => state.snapshot(), isVim, setFile: (n, c) => state.setFile(n, c), setEditor: setContent, format: formatCurrent, setDiags: showDiagnostics };
 }
 
 function mountTabStrip(parent) {
