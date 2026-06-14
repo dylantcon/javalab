@@ -12,6 +12,7 @@
     "site": "node scripts/build.mjs && node scripts/build-toolchain.mjs && node scripts/bundle.mjs && node scripts/generate.mjs",
     "serve": "node scripts/serve.mjs",
     "e2e": "node scripts/e2e.mjs",
+    "verify:editor": "node scripts/verify-editor.mjs",
     "spike": "node scripts/run-spike.mjs"
   },
   "devDependencies": {

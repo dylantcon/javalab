@@ -200,13 +200,13 @@ try {
   check("IDE mounts (CodeMirror) on the Write Java tab", true);
 
   const files0 = await page.evaluate(() => window.__ideDebug.files());
-  check("scaffold = HelloWorld.java + MANIFEST.MF", !!files0["HelloWorld.java"] && !!files0["MANIFEST.MF"]);
+  check("scaffold = MainLauncher.java + MANIFEST.MF", !!files0["MainLauncher.java"] && !!files0["MANIFEST.MF"]);
 
   // editor → state
   await page.click("#ide .cm-content");
   await page.keyboard.type("// hi\n");
   const files1 = await page.evaluate(() => window.__ideDebug.files());
-  check("typing in the editor updates file state", (files1["HelloWorld.java"] || "").includes("// hi"));
+  check("typing in the editor updates file state", (files1["MainLauncher.java"] || "").includes("// hi"));
 
   // Simulate the valid scaffold → compiles, stores jar, runs in a fresh realm
   await page.evaluate(() => { window.__ideLastBuild = null; });
@@ -216,9 +216,9 @@ try {
   check("Simulate compiles the project (ok)", okBuild.ok === true, "rc=" + okBuild.rc);
   const builtStored = await page.evaluate(async () => {
     const db = await new Promise((res) => { const r = indexedDB.open("javalab", 1); r.onsuccess = () => res(r.result); });
-    return await new Promise((res) => { const rq = db.transaction("blobs").objectStore("blobs").get("HelloWorld.jar"); rq.onsuccess = () => res(!!rq.result); });
+    return await new Promise((res) => { const rq = db.transaction("blobs").objectStore("blobs").get("MainLauncher.jar"); rq.onsuccess = () => res(!!rq.result); });
   });
-  check("built jar stored in the library (HelloWorld.jar)", builtStored);
+  check("built jar stored in the library (MainLauncher.jar)", builtStored);
   // simulate switches to Tab 1, plays the transition, then opens the run realm
   const ranStage = await page.waitForSelector('#stage-host iframe[src*="run-upload"]', { timeout: 15_000 }).then(() => true).catch(() => false);
   check("Simulate runs the built jar in a fresh stage realm", ranStage);
@@ -227,14 +227,14 @@ try {
   // compile error → diagnostics; then recover
   await page.locator("#stage-back").click();
   await page.click('.tab[data-tab="ide"]');
-  await page.evaluate(() => window.__ideDebug.setFile("HelloWorld.java", 'public class HelloWorld { public static void main(String[] a){ int x = "oops"; } }'));
+  await page.evaluate(() => window.__ideDebug.setFile("MainLauncher.java", 'public class MainLauncher { public static void main(String[] a){ int x = "oops"; } }'));
   await page.evaluate(() => { window.__ideLastBuild = null; });
   await page.click("#tb-save");
   await page.waitForFunction(() => window.__ideLastBuild, undefined, { timeout: 120_000 });
   const errBuild = await page.evaluate(() => window.__ideLastBuild);
   check("compile error → build fails with diagnostics", errBuild.ok === false && errBuild.diags.length > 0, JSON.stringify(errBuild.diags?.[0] || {}));
 
-  await page.evaluate(() => window.__ideDebug.setFile("HelloWorld.java", 'public class HelloWorld { public static void main(String[] a){ System.out.println("ok"); } }'));
+  await page.evaluate(() => window.__ideDebug.setFile("MainLauncher.java", 'public class MainLauncher { public static void main(String[] a){ System.out.println("ok"); } }'));
   await page.evaluate(() => { window.__ideLastBuild = null; });
   await page.click("#tb-save");
   await page.waitForFunction(() => window.__ideLastBuild, undefined, { timeout: 120_000 });
@@ -245,8 +245,10 @@ try {
   check("Vim toggle enables vim mode", await page.evaluate(() => window.__ideDebug.isVim() && document.querySelector("#tb-vim").classList.contains("is-on")));
   await page.click("#tb-vim");
 
-  // file explorer add (.java via prompt dialog)
+  // file explorer add (.java via the custom retro modal)
   await page.click("#ide-sidebar-files .ide-mini");
+  await page.fill(".ide-modal-input", "Helper.java");
+  await page.locator(".ide-modal-btn", { hasText: /^OK$/ }).first().click();
   check("file explorer adds a new .java", await page.evaluate(() => !!window.__ideDebug.files()["Helper.java"]));
 
   // manifest form ↔ MANIFEST.MF
@@ -254,10 +256,10 @@ try {
   check("manifest form writes Main-Class to MANIFEST.MF", /Main-Class:\s*Demo/.test(await page.evaluate(() => window.__ideDebug.files()["MANIFEST.MF"] || "")));
 
   // format action → google-java-format reflows the code (on the selected file)
-  await page.locator("#ide-tabs .ide-tab", { hasText: "HelloWorld.java" }).first().click();
-  await page.evaluate(() => window.__ideDebug.setEditor('public class HelloWorld{public static void main(String[]a){System.out.println("x");}}'));
+  await page.locator("#ide-tabs .ide-tab", { hasText: "MainLauncher.java" }).first().click();
+  await page.evaluate(() => window.__ideDebug.setEditor('public class MainLauncher{public static void main(String[]a){System.out.println("x");}}'));
   await page.evaluate(() => { window.__ideDebug.format(); });   // fire (don't await the ~cold gjf run)
-  const formatted = await page.waitForFunction(() => /\n {2}\S/.test(window.__ideDebug.files()["HelloWorld.java"] || ""), undefined, { timeout: 60_000 }).then(() => true).catch(() => false);
+  const formatted = await page.waitForFunction(() => /\n {2}\S/.test(window.__ideDebug.files()["MainLauncher.java"] || ""), undefined, { timeout: 60_000 }).then(() => true).catch(() => false);
   check("format action reflows code (google-java-format)", formatted);
 
   // source export → .zip (never .jar)
@@ -267,7 +269,7 @@ try {
 
   // 6. boundary: no POST, no off-origin jar bytes, no .jar download anywhere
   const writes = requests.filter((r) => ["POST", "PUT", "PATCH"].includes(r.method));
-  const leak = requests.filter((r) => !r.url.startsWith(BASE) && /swing-demo\.jar|HelloWorld\.jar/.test(r.url + r.postData));
+  const leak = requests.filter((r) => !r.url.startsWith(BASE) && /swing-demo\.jar|MainLauncher\.jar/.test(r.url + r.postData));
   check("no upload/build endpoint hit (no POST/PUT/PATCH)", writes.length === 0, `${writes.length} writes`);
   check("jar bytes never sent off-origin", leak.length === 0, `${leak.length} leaks`);
   check("no .jar download anywhere", !downloads.some((f) => f.endsWith(".jar")), downloads.join(","));

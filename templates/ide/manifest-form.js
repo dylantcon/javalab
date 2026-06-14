@@ -7,7 +7,7 @@ export function mountManifestForm(parent) {
   root.innerHTML =
     '<div class="ide-pane-head">Manifest</div>' +
     '<label class="ide-mf-row">Main-Class' +
-    '<input id="mf-main" class="ide-mf-input" spellcheck="false" placeholder="HelloWorld"></label>';
+    '<input id="mf-main" class="ide-mf-input" spellcheck="false" placeholder="MainLauncher"></label>';
   parent.appendChild(root);
   const input = root.querySelector("#mf-main");
 

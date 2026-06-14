@@ -8,9 +8,12 @@ import { lintGutter, linter, forceLinting } from "@codemirror/lint";
 import { vim } from "@replit/codemirror-vim";
 import { basicSetup } from "codemirror";
 import * as state from "./state.js";
+import { publicTypeName, isValidClassName, baseName } from "./naming.js";
+import { syncMainClass } from "./files.js";
 
 let view = null;
 let displayed = null;          // file currently shown (avoid clobbering on content edits)
+let renameTimer = null;        // debounce for the code→filename rename (direction 2)
 let vimOn = false;
 let formatHook = null;         // orchestrator may override with google-java-format
 let diagnostics = [];          // [{file,line,severity,message}] from the last build
@@ -77,7 +80,10 @@ function makeState(doc) {
         { key: "Alt-Shift-f", run: () => { runFormat(); return true; } },
       ]),
       EditorView.updateListener.of((u) => {
-        if (u.docChanged && displayed) state.setFile(displayed, u.state.doc.toString(), { silent: true });
+        if (u.docChanged && displayed) {
+          state.setFile(displayed, u.state.doc.toString(), { silent: true });
+          scheduleClassSync();
+        }
       }),
       // Classic light editor (NetBeans-1.0 feel): white, Courier, grey gutter.
       EditorView.theme({
@@ -96,9 +102,42 @@ function makeState(doc) {
 function syncFromState() {
   if (!view) return;
   const cur = state.getCurrent();
-  if (cur === displayed) return;          // only reload on selection change, not edits
+  const next = cur ? state.getFile(cur) ?? "" : "";
+  // Reload on selection change OR when the shown file's content changed in
+  // state behind our back (reset/New Simulation, programmatic setFile). Live
+  // keystrokes save via {silent:true} (no emit), so they never reach here —
+  // and an unrelated emit while the doc already matches state is a no-op, so
+  // the cursor/scroll survive.
+  if (cur === displayed && next === view.state.doc.toString()) return;
+  if (renameTimer) { clearTimeout(renameTimer); renameTimer = null; }   // drop a pending rename for the file we're leaving
   displayed = cur;
-  view.setState(makeState(cur ? state.getFile(cur) ?? "" : ""));
+  view.setState(makeState(next));
+}
+
+// Direction 2 (code→filename): after the user stops typing, if the file's
+// public class was renamed in the source, rename the file (+ Main-Class) to
+// match — javac requires `public class Foo` to live in Foo.java.
+function scheduleClassSync() {
+  if (renameTimer) clearTimeout(renameTimer);
+  renameTimer = setTimeout(syncFilenameToClass, 600);
+}
+
+function syncFilenameToClass() {
+  renameTimer = null;
+  const file = displayed;
+  if (!view || !file || !file.endsWith(".java")) return;
+  const cls = publicTypeName(view.state.doc.toString());
+  if (!cls || !isValidClassName(cls)) return;
+  const oldBase = baseName(file);
+  if (cls === oldBase) return;
+  const target = cls + ".java";
+  if (state.hasFile(target)) return;            // name taken — leave it to the user to resolve
+  // The editor initiated this rename, so point `displayed` at the new name
+  // BEFORE renameFile emits: syncFromState then sees (cur === displayed &&
+  // content unchanged) and skips the reload that would reset the cursor.
+  displayed = target;
+  state.renameFile(file, target);
+  syncMainClass(oldBase, cls);
 }
 
 async function runFormat() {

@@ -4,6 +4,7 @@
 import { mountEditor, setVim, isVim, focusEditor, setFormatHook, setContent, formatCurrent } from "./editor.js";
 import { mountFiles, scaffoldIfEmpty, newSimulation } from "./files.js";
 import { mountManifestForm } from "./manifest-form.js";
+import { modalAlert } from "./modal.js";
 import { mountConsole, writeLine } from "./console.js";
 import { initBuildRealm, format as formatInRealm } from "./build-client.js";
 import { setContext, saveSimulation, simulate } from "./ide.js";
@@ -111,19 +112,14 @@ function wireSplitter(body, handle) {
 }
 
 function showAbout() {
-  const ov = document.createElement("div");
-  ov.className = "ide-about-overlay";
-  ov.innerHTML =
-    '<div class="ide-about">' +
-    '<div class="ide-about-title"><span>About JavaLab</span></div>' +
-    '<div class="ide-about-body">' +
-    '<p><b>JavaLab</b> - a Java emulator that runs in your browser.</p>' +
-    '<p>Write, compile, and run Java with no server and no install.<br>Powered by CheerpJ, a WebAssembly JVM.</p>' +
-    '<div class="ide-about-actions"><button class="tb ide-about-ok">OK</button></div>' +
-    '</div></div>';
-  ov.querySelector(".ide-about-ok").onclick = () => ov.remove();
-  ov.addEventListener("click", (e) => { if (e.target === ov) ov.remove(); });
-  document.body.appendChild(ov);
+  const p = (html) => { const e = document.createElement("p"); e.innerHTML = html; return e; };
+  modalAlert({
+    title: "About JavaLab",
+    body: [
+      p("<b>JavaLab</b> - a Java emulator that runs in your browser."),
+      p("Write, compile, and run Java with no server and no install.<br>Powered by CheerpJ, a WebAssembly JVM."),
+    ],
+  });
 }
 
 const LAYOUT = `
