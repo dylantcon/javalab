@@ -21,6 +21,10 @@
              background: #2ee66a; vertical-align: text-bottom;
              animation: caret 1.06s steps(1) infinite; }
   @keyframes caret { 50% { opacity: 0; } }
+  /* Console view: hide the graphical display and let the terminal fill the realm
+     (the stage stops scaling and stretches this iframe 1:1, so text stays sharp). */
+  body.console-mode #app { display: none; }
+  body.console-mode #console { flex: 1 1 auto; border-top: none; }
 </style>
 </head>
 <body>
@@ -44,6 +48,14 @@ const w = parseInt(params.get("w") || "1280", 10);   // the CheerpJ display (Jav
 const h = parseInt(params.get("h") || "800", 10);    // the console pane sits BELOW it (see #console)
 const app = document.getElementById("app");
 const sanitize = (n) => n.replace(/[^A-Za-z0-9._-]/g, "_");
+
+// The stage chrome toggles between the graphical display and a full-height
+// console (for stdout/stderr-centric programs) by posting a view-mode message.
+window.addEventListener("message", (e) => {
+  const m = e.data;
+  if (m && m.source === "javalab-stage" && m.type === "view-mode")
+    document.body.classList.toggle("console-mode", m.mode === "console");
+});
 
 (async () => {
   try {

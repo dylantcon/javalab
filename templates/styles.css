@@ -131,12 +131,14 @@ body {
 }
 #stage-title { font-weight: bold; font-size: 11px; }
 .stage-spacer { flex: 1; }
-#stage-back, #stage-max {
+#stage-back, #stage-max, #stage-view {
   background: var(--face); color: var(--ink); font: inherit; font-size: 11px; cursor: pointer;
   border: 1px solid; border-color: var(--hi) var(--dk) var(--dk) var(--hi);
   box-shadow: inset -1px -1px var(--lo), inset 1px 1px var(--light); padding: 1px 8px;
 }
-#stage-back:active, #stage-max:active { border-color: var(--dk) var(--hi) var(--hi) var(--dk); box-shadow: inset 1px 1px var(--lo); }
+#stage-view[hidden] { display: none; }
+#stage-view.is-on { border-color: var(--dk) var(--hi) var(--hi) var(--dk); box-shadow: inset 1px 1px var(--lo); }
+#stage-back:active, #stage-max:active, #stage-view:active { border-color: var(--dk) var(--hi) var(--hi) var(--dk); box-shadow: inset 1px 1px var(--lo); }
 #stage-host { flex: 1; display: flex; align-items: center; justify-content: center; padding: 6px; margin: 2px;
   overflow: hidden; background: var(--face-2); box-shadow: inset 1px 1px var(--lo), inset -1px -1px var(--hi); }
 #stage.is-max #stage-host { background: #06141d; margin: 0; box-shadow: none; }

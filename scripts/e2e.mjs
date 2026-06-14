@@ -178,6 +178,18 @@ try {
   const panel2 = await waitForRender(page, "#stage-host", SHOT("upload"));
   check("uploaded jar actually runs in a fresh realm (indigo panel past the splash)", panel2 > 3000, `panel px=${panel2}`);
 
+  // 5a2. console/display toggle: library realms expose it; it flips the realm to
+  //      a full console (and back) without restarting the JVM.
+  const frameConsoleMode = () => {
+    for (const fr of page.frames()) if (fr.url().includes("run-upload")) return fr.evaluate(() => document.body.classList.contains("console-mode"));
+    return Promise.resolve(false);
+  };
+  check("console toggle is offered for library jars", await page.isVisible("#stage-view"));
+  await page.click("#stage-view");
+  check("toggle switches the realm to full console", await frameConsoleMode());
+  await page.click("#stage-view");
+  check("toggle restores the graphical display", !(await frameConsoleMode()));
+
   // 5b. audio: a Java-8 jar runs on Java 8 so SourceDataLine actually works
   //     (CheerpJ 4.3 has no audio on 11/17 — the whole reason we detect+pin the runtime)
   await page.locator("#stage-back").click();
