@@ -16,7 +16,8 @@ let displayed = null;          // file currently shown (avoid clobbering on cont
 let renameTimer = null;        // debounce for the code→filename rename (direction 2)
 let vimOn = false;
 let formatHook = null;         // orchestrator may override with google-java-format
-let diagnostics = [];          // [{file,line,severity,message}] from the last build
+let diagnostics = [];          // [{file,line,col,severity,message,detail}] from the last build
+const diagListeners = [];      // notified when diagnostics change (tab badges subscribe)
 const vimComp = new Compartment();
 
 // Map the last build's diagnostics for the CURRENTLY shown file onto live
@@ -26,11 +27,27 @@ const vimComp = new Compartment();
 // next keystroke.
 function diagnosticsForView(v) {
   const items = [];
+  const doc = v.state.doc;
   for (const d of diagnostics) {
     if (d.file !== displayed) continue;
-    const n = Math.min(Math.max(d.line, 1), v.state.doc.lines);
-    const ln = v.state.doc.line(n);
-    items.push({ from: ln.from, to: ln.to, severity: d.severity === "error" ? "error" : "warning", message: d.message });
+    const n = Math.min(Math.max(d.line, 1), doc.lines);
+    const ln = doc.line(n);
+    let from = ln.from, to = ln.to;
+    // When javac gave us a caret column, underline the exact token it points at
+    // (the whole identifier) instead of the whole line — matches javac's own "^".
+    if (d.col != null) {
+      const text = ln.text;
+      const at = Math.min(Math.max(d.col - 1, 0), text.length);
+      const isWord = (c) => c && /[A-Za-z0-9_$]/.test(c);
+      let a = at, b = at;
+      while (a > 0 && isWord(text[a - 1])) a--;
+      while (b < text.length && isWord(text[b])) b++;
+      if (b > a) { from = ln.from + a; to = ln.from + b; }
+      else if (at < text.length) { from = ln.from + at; to = from + 1; }
+    }
+    // Carry javac's full detail (source line, caret, symbol/location) into the hover.
+    const message = d.detail ? `${d.message}\n${d.detail}` : d.message;
+    items.push({ from, to, severity: d.severity === "error" ? "error" : "warning", message });
   }
   return items;
 }
@@ -68,11 +85,29 @@ export function setContent(text) {
 /** Trigger the format action programmatically (same path as Alt+Shift+F). */
 export function formatCurrent() { return runFormat(); }
 
-/** Update inline diagnostics from a build. `parsed` = [{file,line,severity,message}].
+/** Update inline diagnostics from a build. `parsed` = [{file,line,col,severity,message,detail}].
  *  Applies immediately, so a successful compile ([]) clears stale markers. */
 export function showDiagnostics(parsed) {
   diagnostics = parsed || [];
   applyDiagnostics();
+  diagListeners.forEach((fn) => fn());
+}
+
+/** Subscribe to diagnostics changes (the tab strip badges errored files). */
+export function onDiagnostics(fn) {
+  diagListeners.push(fn);
+  return () => { const i = diagListeners.indexOf(fn); if (i >= 0) diagListeners.splice(i, 1); };
+}
+
+/** Map of file → {errors, warnings} for the last build (for cross-file badges). */
+export function diagnosticsSummary() {
+  const map = new Map();
+  for (const d of diagnostics) {
+    const s = map.get(d.file) || { errors: 0, warnings: 0 };
+    if (d.severity === "error") s.errors++; else s.warnings++;
+    map.set(d.file, s);
+  }
+  return map;
 }
 
 function makeState(doc) {
@@ -103,6 +138,8 @@ function makeState(doc) {
         ".cm-activeLineGutter": { backgroundColor: "#dde6f5" },
         ".cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection": { backgroundColor: "#b5d5ff" },
         ".cm-cursor": { borderLeftColor: "#000" },
+        // Preserve javac's caret/symbol/location layout in the diagnostic hover.
+        ".cm-diagnostic": { whiteSpace: "pre-wrap", fontFamily: '"Courier New", Courier, monospace', fontSize: "12px" },
       }),
     ],
   });

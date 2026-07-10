@@ -69,9 +69,9 @@
       "artifact": "ChiptuneSynth.jar",
       "javaTarget": 8,
       "cheerpjVersion": 8,
-      "display": { "w": 380, "h": 420 },
+      "display": { "w": 800, "h": 600 },
       "thumbnail": "thumbnail.png",
-      "webNotes": "From github.com/dylantcon/chiptune-synth. Operator-supplied prebuilt jar running chiptunesynth.player.ChiptunePlayer — the dedicated runner with the full song library (Korobeiniki, Wily, DuckTales Moon, Hyrule Temple, Contra Jungle, Flashman, Bloody Tears, Surf City). Native window 380x420. Audio via javax.sound.sampled — CheerpJ supports this on Java 8 only. (Replaced the earlier ChiptuneDemo launcher.)"
+      "webNotes": "From github.com/dylantcon/chiptune-synth. Operator-supplied prebuilt jar running chiptunesynth.player.ChiptunePlayer - the dedicated runner with the full song library (Korobeiniki, Wily, DuckTales Moon, Hyrule Temple, Contra Jungle, Flashman, Bloody Tears, Surf City). Native window 800x600. Audio via javax.sound.sampled - CheerpJ supports this on Java 8 only. (Replaced the earlier ChiptuneDemo launcher.)"
     },
     {
       "id": "ten-color-chooser",

@@ -1,7 +1,7 @@
 // index.js — IDE entry. esbuild bundles this (+ CM6/xterm/fflate) into
 // public/ide.bundle.js as window.JavaLabIDE = { init }. main.js calls
 // JavaLabIDE.init(container, ctx) the first time the "Write Java" tab opens.
-import { mountEditor, setVim, isVim, focusEditor, setFormatHook, setContent, formatCurrent, showDiagnostics } from "./editor.js";
+import { mountEditor, setVim, isVim, focusEditor, setFormatHook, setContent, formatCurrent, showDiagnostics, onDiagnostics, diagnosticsSummary } from "./editor.js";
 import { mountFiles, scaffoldIfEmpty, newSimulation } from "./files.js";
 import { mountManifestForm } from "./manifest-form.js";
 import { modalAlert } from "./modal.js";
@@ -69,16 +69,32 @@ export function init(container, ctx) {
 
 function mountTabStrip(parent) {
   const render = () => {
+    const summary = diagnosticsSummary();
     parent.replaceChildren();
     for (const name of state.listFiles()) {
+      const info = summary.get(name);
       const t = document.createElement("button");
-      t.className = "ide-tab" + (name === state.getCurrent() ? " is-active" : "");
-      t.textContent = name;
+      t.className = "ide-tab"
+        + (name === state.getCurrent() ? " is-active" : "")
+        + (info?.errors ? " has-errors" : info?.warnings ? " has-warnings" : "");
       t.onclick = () => state.selectFile(name);
+      const label = document.createElement("span");
+      label.textContent = name;
+      t.appendChild(label);
+      // Badge tabs whose file has diagnostics, so errors in a file you're NOT
+      // viewing are still discoverable (the editor can only mark the open one).
+      if (info) {
+        const badge = document.createElement("span");
+        badge.className = "ide-tab-badge";
+        badge.textContent = String(info.errors || info.warnings);
+        badge.title = `${info.errors} error(s), ${info.warnings} warning(s)`;
+        t.appendChild(badge);
+      }
       parent.appendChild(t);
     }
   };
   state.subscribe(render);
+  onDiagnostics(render);
   render();
 }
 
