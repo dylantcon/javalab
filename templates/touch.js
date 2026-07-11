@@ -25,6 +25,31 @@
 // so a touchscreen PC — where the mouse is the primary pointer — never shows it,
 // and desktop keyboards are untouched.
 
+// --- ?touchdebug — on-device event log ---------------------------------------
+// The d-pad works under mobile EMULATION but reportedly not on a real Android
+// phone, so the diagnosis has to happen on the phone itself. With ?touchdebug
+// (or #touchdebug) in the URL, every link of the input chain — pointer events on
+// the buttons, capture-textarea resolution, focus hand-off, key dispatch, and
+// arrival inside the CheerpJ iframe — is logged to a fixed overlay readable on
+// the device, no USB devtools required. Zero cost when the flag is absent.
+const DEBUG = /[?#&]touchdebug/.test(location.search + location.hash);
+let dbgBox = null;
+const dbgLines = [];
+function dbg(msg) {
+  if (!DEBUG) return;
+  if (!dbgBox) {
+    dbgBox = document.createElement("div");
+    dbgBox.style.cssText =
+      "position:fixed;top:0;left:0;right:0;z-index:99999;pointer-events:none;" +
+      "background:rgba(0,0,0,.78);color:#7cfc00;font:10px/1.35 monospace;" +
+      "padding:4px 6px;white-space:pre-wrap;max-height:45vh;overflow:hidden;";
+    document.body.appendChild(dbgBox);
+  }
+  dbgLines.push(((performance.now() / 1000).toFixed(2)) + " " + msg);
+  while (dbgLines.length > 26) dbgLines.shift();
+  dbgBox.textContent = dbgLines.join("\n");
+}
+
 const SPECIAL = {
   " ":      { label: "Space", code: "Space",  keyCode: 32, wide: true },
   "Escape": { label: "Esc",   code: "Escape", keyCode: 27 },
@@ -96,14 +121,23 @@ function fireKey(target, type, spec) {
       Object.defineProperty(ev, "which", { get: () => spec.keyCode });
     } catch (e) {}
   }
-  target.dispatchEvent(ev);
+  const notCancelled = target.dispatchEvent(ev);
+  // dispatchEvent returns false when a listener preventDefault()ed — for our
+  // synthetic keys that means CheerpJ's handler actually consumed the event.
+  dbg(type + " " + spec.code + " -> <" + target.tagName + "> consumed=" + !notCancelled);
 }
 
 // CheerpJ's keyboard-capture textarea inside the realm iframe (same-origin).
+// Prefer whatever textarea is FOCUSED: on real Android Chrome CheerpJ listens on
+// its capture textarea (not the document), and an event dispatched at <body>
+// bubbles upward — it never passes through a descendant textarea. The focused
+// element is the one CheerpJ is actually reading keys from.
 function keyTarget(iframe) {
   try {
     const d = iframe.contentDocument;
     if (!d) return null;
+    const a = d.activeElement;
+    if (a && a.tagName === "TEXTAREA") return a;
     return d.querySelector("#cheerpjDisplay textarea") || d.querySelector("textarea") || d.body;
   } catch (e) { return null; }
 }
@@ -120,12 +154,26 @@ function makeInputBridge(iframe) {
   const held = new Map();   // code -> { spec, downAt, releaseTimer }
 
   const target = () => {
-    if (cached && cached.isConnected) return cached;
-    return (cached = keyTarget(iframe));
+    // Only a TEXTAREA is worth caching. keyTarget() falls back to <body> while
+    // CheerpJ is still booting (its capture textarea doesn't exist yet) — and
+    // body stays isConnected forever, so caching it would lock every future key
+    // event onto a node CheerpJ never listens on. That's exactly what happened
+    // on real phones: boot is slow, an early press/refocus resolved body, and
+    // the d-pad stayed dead for the whole session.
+    if (cached && cached.isConnected && cached.tagName === "TEXTAREA") return cached;
+    const t = keyTarget(iframe);
+    cached = (t && t.tagName === "TEXTAREA") ? t : null;
+    return t;
   };
   const refocus = () => {
     const t = target();
     if (t) try { t.focus({ preventScroll: true }); } catch (e) {}
+    if (DEBUG) {
+      let active = "?";
+      try { active = iframe.contentDocument.activeElement.tagName; } catch (e) {}
+      dbg("refocus tgt=" + (t ? t.tagName : "NONE") + " iframeActive=" + active +
+          " topActive=" + (document.activeElement && document.activeElement.tagName));
+    }
   };
 
   // Focus self-heal: while the pad is mounted, if the capture textarea loses
@@ -133,8 +181,14 @@ function makeInputBridge(iframe) {
   // fullscreen transition (which legitimately parks focus on the parent #stage
   // before stage.js's focusRealm hands it back) settles without a tug-of-war: a
   // focusin on the textarea cancels the pending heal, so the common path is free.
-  const onFocusOut = () => { clearTimeout(healTimer); healTimer = setTimeout(refocus, 150); };
-  const onFocusIn  = () => { clearTimeout(healTimer); healTimer = null; };
+  const onFocusOut = (e) => {
+    dbg("focusout from=" + (e && e.target && e.target.tagName) + " (heal in 150ms)");
+    clearTimeout(healTimer); healTimer = setTimeout(refocus, 150);
+  };
+  const onFocusIn  = (e) => {
+    dbg("focusin to=" + (e && e.target && e.target.tagName));
+    clearTimeout(healTimer); healTimer = null;
+  };
   const bindGuard = () => {
     let doc;
     try { doc = iframe.contentDocument; } catch (e) { return; }
@@ -142,13 +196,22 @@ function makeInputBridge(iframe) {
     guardedDoc = doc;
     doc.addEventListener("focusout", onFocusOut, true);
     doc.addEventListener("focusin", onFocusIn, true);
+    if (DEBUG) {
+      // Capture-phase taps on the realm document itself: proves whether our
+      // dispatched key events actually ARRIVE inside the iframe's tree.
+      const seen = (e) => dbg("iframe saw " + e.type + " kc=" + e.keyCode +
+        " tgt=<" + (e.target && e.target.tagName) + "> trusted=" + e.isTrusted);
+      doc.addEventListener("keydown", seen, true);
+      doc.addEventListener("keyup", seen, true);
+      dbg("guard bound to realm doc readyState=" + doc.readyState);
+    }
   };
   bindGuard();
   iframe.addEventListener("load", bindGuard);
 
   function press(spec) {
     const t = target();
-    if (!t) return;                         // realm not ready → nothing to do
+    if (!t) { dbg("press " + spec.code + " NO TARGET"); return; }  // realm not ready
     refocus();                              // keep AWT focused on the display
     const cur = held.get(spec.code);
     if (cur) {                              // already down (re-entrant press, or a
@@ -241,14 +304,15 @@ function button(spec, bridge) {
   let active = false;
   const down = (e) => {
     e.preventDefault();                     // don't steal focus from the textarea / no synth-mouse
+    dbg("btn " + spec.code + " pointerdown type=" + e.pointerType + (active ? " (already active)" : ""));
     if (active) return;
     active = true;
     btn.classList.add("on");
-    try { btn.setPointerCapture(e.pointerId); } catch (e2) {}
+    try { btn.setPointerCapture(e.pointerId); } catch (e2) { dbg("setPointerCapture threw: " + e2); }
     bridge.press(spec);
   };
   const up = (e) => {
-    if (e) e.preventDefault();
+    if (e) { e.preventDefault(); dbg("btn " + spec.code + " " + e.type + (active ? "" : " (ignored, not active)")); }
     if (!active) return;
     active = false;
     btn.classList.remove("on");
@@ -267,6 +331,7 @@ function button(spec, bridge) {
 export function mountTouchpad(host, iframe, keys) {
   injectStyles();
   unmountTouchpad();
+  dbg("mount keys=[" + keys.join(",") + "] ua=" + navigator.userAgent.slice(0, 60));
   suppressKeyboard(iframe);
   bridge = makeInputBridge(iframe);
   if (getComputedStyle(host).position === "static") host.style.position = "relative";
