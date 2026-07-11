@@ -111,9 +111,26 @@ function focusRealm() {
   go();
   setTimeout(go, 60);   // after the fullscreen transition settles
 }
+// A landscape-native app (w > h, e.g. Javarominoes at 1280x720) fullscreened on a
+// portrait phone gets letterboxed down to a tiny pillarboxed rectangle — fit()
+// must shrink to the narrow portrait WIDTH, wasting most of the screen as dead
+// black bars above/below (and stranding the touch d-pad far from the tiny
+// display). Locking the screen to landscape while maximized gives fit() a
+// viewport that actually matches the app's aspect ratio. Best-effort: only
+// Android Chrome supports the Orientation Lock API (iOS Safari doesn't; desktop
+// browsers reject it outside fullscreen), so a failed/absent lock silently
+// leaves the existing letterboxed-but-functional behavior in place.
+function lockLandscapeIfNeeded() {
+  if (!cur || cur.w <= cur.h || !isTouchDevice()) return;
+  try { screen.orientation && screen.orientation.lock("landscape").catch(() => {}); } catch (e) {}
+}
+function unlockOrientation() {
+  try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
+}
 function setMax(on) {
   stage.classList.toggle("is-max", on);
   if (maxBtn) maxBtn.textContent = on ? "Restore" : "Maximize";
+  if (on) lockLandscapeIfNeeded(); else unlockOrientation();
   fit();
   focusRealm();
 }
