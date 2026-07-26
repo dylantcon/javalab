@@ -1,18 +1,20 @@
 // main.js — launcher entry point. Wires the gallery, tabs, and upload, and
 // lazy-initialises the IDE bundle (window.JavaLabIDE) the first time the
 // "Write Java" tab opens, handing it a bridge to the Phase 1 pieces it needs.
-import { renderGallery } from "./gallery.js";
+import { renderGallery, launchAppById } from "./gallery.js";
 import { initTabs, switchTab } from "./tabs.js";
 import { initLeftTabs } from "./leftpanel.js";
 import { initUpload, refreshUploads } from "./upload.js";
 import { openUploadStage } from "./stage.js";
 import { putJar } from "./idb.js";
+import { setUrlApp } from "./util.js";
 
 renderGallery();
 initUpload();
 initLeftTabs();
 initSplitter();
 initMinimize();
+openDeepLink();
 
 let ideReady = false;
 initTabs((name) => {
@@ -26,6 +28,17 @@ initTabs((name) => {
     });
   }
 });
+
+// Deep link: /?app=<id> lands on the launcher with that app already running in
+// the Viewer, so an outside link (the [Live] buttons on dconn.dev) drops a
+// visitor straight into the app instead of the gallery. Runs after the left
+// tabs are wired, since launching switches to the Viewer tab. An id that isn't
+// in the manifest (a stale or mistyped link) just leaves the gallery showing —
+// the bad param is dropped so the URL matches what's on screen.
+function openDeepLink() {
+  const id = new URLSearchParams(location.search).get("app");
+  if (id && !launchAppById(id)) setUrlApp(null);
+}
 
 // Draggable splitter between the gallery and the sandbox column, so the editor
 // can be widened (an IDE without a resizable split is no IDE).

@@ -7,6 +7,7 @@ import { launchRealm, closeRealm } from "./realm.js";
 import { DEFAULT_DISP_W, DEFAULT_DISP_H } from "./idb.js";
 import { showViewer, showGallery } from "./leftpanel.js";
 import { isTouchDevice, mountTouchpad, unmountTouchpad } from "./touch.js";
+import { setUrlApp } from "./util.js";
 
 // The realm iframe shows a console pane BELOW the Java display; this is its
 // height (+ border) so we can size the iframe to hold display + console and let
@@ -56,7 +57,9 @@ export function openStage(label, url, w, h, opts = {}) {
 // the console pane below it. w/h default to the standard display when omitted.
 export function openUploadStage(label, key, version, w = DEFAULT_DISP_W, h = DEFAULT_DISP_H) {
   const url = `/run-upload.html?key=${encodeURIComponent(key)}&w=${w}&h=${h}&version=${version}`;
-  return openStage(label, url, w, h + STAGE_CHROME, { hasConsole: true });
+  const iframe = openStage(label, url, w, h + STAGE_CHROME, { hasConsole: true });
+  setUrlApp(null);   // a visitor's own jar is not linkable — drop any ?app= left over
+  return iframe;
 }
 
 export function closeStage() {
@@ -67,6 +70,7 @@ export function closeStage() {
   stage.classList.remove("has-app");
   if (viewBtn) viewBtn.hidden = true;
   cur = null;
+  setUrlApp(null);                   // nothing running → no deep link to share
   showGallery();                     // hop back to the Gallery tab
 }
 

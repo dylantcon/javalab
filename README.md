@@ -4,6 +4,9 @@ JavaLab is a Java 8/11/17 emulator that runs in the web. It only serves static f
 ## Architecture at a glance
 Source of truth lives in three places - `apps.json` (the curated app manifest), `templates/` (page HTML + the launcher/IDE JavaScript), and `apps/<id>/` (each app's prebuilt jar, thumbnail, and any sources). The build pipeline compiles these into `public/`, which is the *only* directory served in production (static files behind nginx). Nothing in `public/` is edited by hand - always rebuild.
 
+## Deep links - `/?app=<id>`
+`https://javalab.dconn.dev/?app=<id>` (any `id` from `apps.json`) loads the launcher with that app already running in the Viewer - the target for the `[Live]` buttons on dconn.dev. The address bar tracks the stage both ways: launching from a gallery card stamps `?app=<id>`, and `<< Gallery` (or running your own jar) clears it, so a running app is always copy-linkable. An id that isn't in the manifest falls through to the plain gallery and the stale param is dropped. Wiring: `openDeepLink()` in `templates/main.js` -> `launchAppById()` in `gallery.js`; `setUrlApp()` in `util.js` is the one place that touches the URL. Apps flagged `disclaimer:true` still show their OK gate first, so the jar never starts without a click.
+
 ## Administrative control scripts
 All scripts live in `scripts/` and are plain Node ESM (`node scripts/<x>.mjs`). The ones you run routinely are wrapped as `npm run` targets in `package.json`.
 
